@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0B1B3A">
+  <meta name="description" content="PA Guest Tracker — Progress Alliance Guest Management">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PA Guests">
+
+  <title>PA Guest Tracker</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/app.css">
+</head>
+<body>
+  <!-- App mounts here via app.js -->
+  <div id="initial-loader" style="
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#0B1B3A;
+    flex-direction:column;
+    gap:16px;
+  ">
+    <div style="
+      font-family:'Playfair Display',Georgia,serif;
+      font-size:2.5rem;
+      color:#C9A84C;
+      letter-spacing:0.05em;
+    ">PA</div>
+    <div style="
+      width:32px;height:32px;
+      border:3px solid #1E3666;
+      border-top-color:#C9A84C;
+      border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    "></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  </div>
+
+  <!-- App Entry Point -->
+  <script type="module" src="/app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

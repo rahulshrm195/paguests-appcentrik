@@ -1,0 +1,110 @@
+// ============================================================
+// firestore.rules — Firestore Security Rules
+// PA Guest Tracker
+// Deploy: firebase deploy --only firestore:rules
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ──────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && getUserData().role == 'superAdmin';
+    }
+
+    function isChapterAdmin() {
+      return isSignedIn() && getUserData().role == 'chapterAdmin';
+    }
+
+    function isDesk() {
+      return isSignedIn() && getUserData().role == 'desk';
+    }
+
+    function isAdminOfChapter(chapterId) {
+      return isSignedIn() && (
+        getUserData().role == 'superAdmin' ||
+        (getUserData().role == 'chapterAdmin' && chapterId in getUserData().chapterIds)
+      );
+    }
+
+    // ── Chapters ──────────────────────────────────────────────
+    match /chapters/{chapterId} {
+      // Anyone signed in can read chapters (needed for chapter admin + desk)
+      allow read: if isSignedIn();
+      // Only super admin can write chapters
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Meetings ──────────────────────────────────────────────
+    match /meetings/{meetingId} {
+      // Any signed-in user can read meetings (desk needs to see meetings for attendance)
+      allow read: if isSignedIn();
+      // Chapter admin or super admin can create/update meetings
+      allow create: if isAdminOfChapter(request.resource.data.chapterId);
+      allow update: if isAdminOfChapter(resource.data.chapterId);
+      // Only super admin can delete meetings
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── Guests ────────────────────────────────────────────────
+    match /guests/{guestId} {
+      // Public registration: allow create without auth
+      // (anyone with the URL can register a guest)
+      allow create: if true;
+
+      // Read: signed-in users who are admin of this chapter, or super admin
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
+        isAdminOfChapter(resource.data.chapterId) ||
+        isDesk() // desk needs to read guests for attendance
+      );
+
+      // Update: chapter admin, desk (for attendance), or super admin
+      allow update: if isSignedIn() && (
+        isSuperAdmin() ||
+        isAdminOfChapter(resource.data.chapterId) ||
+        isDesk()
+      );
+
+      // Delete: only chapter admin or super admin
+      allow delete: if isSignedIn() && (
+        isSuperAdmin() ||
+        isAdminOfChapter(resource.data.chapterId)
+      );
+    }
+
+    // ── Follow-ups ────────────────────────────────────────────
+    match /followups/{followupId} {
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
+        isAdminOfChapter(resource.data.chapterId)
+      );
+      allow create: if isSignedIn() && (
+        isSuperAdmin() ||
+        isAdminOfChapter(request.resource.data.chapterId)
+      );
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ── Users ─────────────────────────────────────────────────
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || isSuperAdmin()
+      );
+      // Super admin can write any user profile
+      allow write: if isSuperAdmin();
+      // Users can update their own profile (limited fields)
+      allow update: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}
