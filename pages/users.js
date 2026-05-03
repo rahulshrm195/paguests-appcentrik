@@ -1,24 +1,36 @@
 // ============================================================
 // pages/users.js — User Management (Super Admin)
-// Uses Cloud Function to create Firebase Auth users
+// Uses secondary Firebase app instance to create users
+// without logging out the current Super Admin session
 // ============================================================
 
 import { showToast } from "../app.js";
-import { getUsers, updateUserProfile, getChapters } from "../firebase.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
-import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getUsers, updateUserProfile, getChapters, createUserProfile, db } from "../firebase.js";
+import {
+  initializeApp, getApps
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { t } from "../i18n.js";
 
 let users = [];
 let chapters = [];
 
-function getFunctionsInstance() {
-  return getFunctions(getApp(), "asia-south1"); // Mumbai region — closest to India
+// Secondary Firebase app instance — creates users without signing out Super Admin
+function getSecondaryAuth() {
+  const existing = getApps().find(a => a.name === "secondary");
+  if (existing) return getAuth(existing);
+  const primaryApp = getApps().find(a => a.name === "[DEFAULT]");
+  const secondaryApp = initializeApp(primaryApp.options, "secondary");
+  return getAuth(secondaryApp);
 }
 
 export default async function initUsers(container) {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
-
   try {
     [users, chapters] = await Promise.all([getUsers(), getChapters()]);
     renderUsers(container);
@@ -62,8 +74,7 @@ function renderUsers(container) {
 
         const userChapters = (u.chapterIds || [])
           .map(id => chapters.find(c => c.id === id)?.name)
-          .filter(Boolean)
-          .join(", ");
+          .filter(Boolean).join(", ");
 
         const initials = (u.name || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -98,36 +109,28 @@ function renderUsers(container) {
     users = await getUsers();
     renderUsers(container);
   });
-
   container.querySelector("#add-user-btn")?.addEventListener("click", () => showCreateUserModal(container));
   container.querySelector("#empty-add-btn")?.addEventListener("click", () => showCreateUserModal(container));
-
   container.querySelectorAll(".edit-user-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const user = users.find(u => u.id === btn.dataset.id);
       if (user) showEditUserModal(user, container);
     });
   });
-
   container.querySelectorAll(".delete-user-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      showDeleteUserModal(btn.dataset.id, btn.dataset.name, container);
-    });
+    btn.addEventListener("click", () => showDeleteConfirm(btn.dataset.id, btn.dataset.name, container));
   });
 }
 
-// ── Create User Modal ─────────────────────────────────────────
 function showCreateUserModal(container) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
-
   overlay.innerHTML = `
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">+ ${t("addUser")}</h2>
         <button class="modal-close" id="close-cu">✕</button>
       </div>
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">${t("userName")} <span class="required">*</span></label>
@@ -142,20 +145,17 @@ function showCreateUserModal(container) {
           </select>
         </div>
       </div>
-
       <div class="form-group">
         <label class="form-label">${t("userEmail")} <span class="required">*</span></label>
         <input id="cu-email" class="form-control" type="email" placeholder="email@example.com" autocomplete="off">
       </div>
-
       <div class="form-group">
         <label class="form-label">Password <span class="required">*</span></label>
         <div style="position:relative;">
-          <input id="cu-password" class="form-control" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:44px;">
-          <button id="toggle-pw" type="button" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.8rem;">Show</button>
+          <input id="cu-password" class="form-control" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:52px;">
+          <button id="toggle-pw" type="button" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:600;">SHOW</button>
         </div>
       </div>
-
       <div class="form-group" id="cu-chapters-group">
         <label class="form-label">${t("userChapters")}</label>
         <div style="max-height:180px;overflow-y:auto;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px;">
@@ -166,18 +166,15 @@ function showCreateUserModal(container) {
                 <input type="checkbox" class="cu-chapter-check" value="${ch.id}">
                 <span style="font-size:0.875rem;">${ch.name}${ch.city ? ` — ${ch.city}` : ""}</span>
               </label>
-            `).join("")
-          }
+            `).join("")}
         </div>
       </div>
-
       <div id="cu-err" class="form-error hidden" style="margin-bottom:8px;"></div>
-
       <div class="modal-footer">
         <button class="btn btn-ghost" id="cu-cancel">${t("cancel")}</button>
         <button class="btn btn-primary" id="cu-save">
           <span id="cu-save-label">Create User</span>
-          <div id="cu-spinner" class="spinner hidden" style="width:16px;height:16px;border-width:2px;"></div>
+          <div id="cu-spinner" class="spinner hidden" style="width:16px;height:16px;border-width:2px;margin-left:6px;"></div>
         </button>
       </div>
     </div>
@@ -185,24 +182,16 @@ function showCreateUserModal(container) {
 
   document.body.appendChild(overlay);
 
-  // Show/hide chapters based on role
-  const roleSelect = overlay.querySelector("#cu-role");
-  const chaptersGroup = overlay.querySelector("#cu-chapters-group");
-  roleSelect.addEventListener("change", () => {
-    chaptersGroup.style.display = roleSelect.value === "superAdmin" ? "none" : "block";
+  overlay.querySelector("#cu-role").addEventListener("change", e => {
+    overlay.querySelector("#cu-chapters-group").style.display =
+      e.target.value === "superAdmin" ? "none" : "block";
   });
 
-  // Password visibility toggle
   overlay.querySelector("#toggle-pw").addEventListener("click", () => {
     const pw = overlay.querySelector("#cu-password");
     const btn = overlay.querySelector("#toggle-pw");
-    if (pw.type === "password") {
-      pw.type = "text";
-      btn.textContent = "Hide";
-    } else {
-      pw.type = "password";
-      btn.textContent = "Show";
-    }
+    pw.type = pw.type === "password" ? "text" : "password";
+    btn.textContent = pw.type === "password" ? "SHOW" : "HIDE";
   });
 
   overlay.querySelector("#close-cu").addEventListener("click", () => overlay.remove());
@@ -217,53 +206,57 @@ function showCreateUserModal(container) {
     const chapterIds = [...overlay.querySelectorAll(".cu-chapter-check:checked")].map(c => c.value);
     const errEl = overlay.querySelector("#cu-err");
 
-    // Validate
     errEl.classList.add("hidden");
     if (!name) return showErr(errEl, "Name is required.");
     if (!email || !email.includes("@")) return showErr(errEl, "Valid email is required.");
     if (!password || password.length < 6) return showErr(errEl, "Password must be at least 6 characters.");
 
-    // Show loading
     const saveBtn = overlay.querySelector("#cu-save");
-    const saveLabel = overlay.querySelector("#cu-save-label");
-    const spinner = overlay.querySelector("#cu-spinner");
+    overlay.querySelector("#cu-save-label").textContent = "Creating...";
+    overlay.querySelector("#cu-spinner").classList.remove("hidden");
     saveBtn.disabled = true;
-    saveLabel.textContent = "Creating...";
-    spinner.classList.remove("hidden");
 
     try {
-      const functions = getFunctionsInstance();
-      const createUser = httpsCallable(functions, "createUser");
-      await createUser({ name, email, password, role, chapterIds });
+      // Secondary instance — Super Admin stays logged in
+      const secondaryAuth = getSecondaryAuth();
+      const { user: newUser } = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      await updateProfile(newUser, { displayName: name });
+
+      // Firestore profile
+      await createUserProfile(newUser.uid, {
+        name, email, role,
+        chapterIds: role === "superAdmin" ? [] : chapterIds,
+      });
+
+      // Sign out from secondary app
+      await secondaryAuth.signOut();
 
       showToast("User created successfully!", "success");
       overlay.remove();
-
-      // Refresh users list
       users = await getUsers();
       renderUsers(container);
     } catch (err) {
-      const msg = err.message || "Failed to create user.";
-      showErr(errEl, msg.replace("FirebaseError: ", ""));
+      let msg = err.message || "Failed to create user.";
+      if (err.code === "auth/email-already-in-use") msg = "This email is already registered.";
+      if (err.code === "auth/invalid-email") msg = "Invalid email address.";
+      if (err.code === "auth/weak-password") msg = "Password is too weak (min 6 chars).";
+      showErr(errEl, msg);
       saveBtn.disabled = false;
-      saveLabel.textContent = "Create User";
-      spinner.classList.add("hidden");
+      overlay.querySelector("#cu-save-label").textContent = "Create User";
+      overlay.querySelector("#cu-spinner").classList.add("hidden");
     }
   });
 }
 
-// ── Edit User Modal ───────────────────────────────────────────
 function showEditUserModal(user, container) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
-
   overlay.innerHTML = `
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">${t("edit")}: ${user.name || user.email}</h2>
         <button class="modal-close" id="close-eu">✕</button>
       </div>
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">${t("userName")}</label>
@@ -278,7 +271,6 @@ function showEditUserModal(user, container) {
           </select>
         </div>
       </div>
-
       <div class="form-group" id="eu-chapters-group" ${user.role === "superAdmin" ? "style='display:none;'" : ""}>
         <label class="form-label">${t("userChapters")}</label>
         <div style="max-height:200px;overflow-y:auto;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px;">
@@ -290,9 +282,7 @@ function showEditUserModal(user, container) {
           `).join("")}
         </div>
       </div>
-
       <div id="eu-err" class="form-error hidden" style="margin-bottom:8px;"></div>
-
       <div class="modal-footer">
         <button class="btn btn-ghost" id="eu-cancel">${t("cancel")}</button>
         <button class="btn btn-primary" id="eu-save">${t("save")}</button>
@@ -301,88 +291,57 @@ function showEditUserModal(user, container) {
   `;
 
   document.body.appendChild(overlay);
-
-  overlay.querySelector("#eu-role").addEventListener("change", (e) => {
+  overlay.querySelector("#eu-role").addEventListener("change", e => {
     overlay.querySelector("#eu-chapters-group").style.display =
       e.target.value === "superAdmin" ? "none" : "block";
   });
-
   overlay.querySelector("#close-eu").addEventListener("click", () => overlay.remove());
   overlay.querySelector("#eu-cancel").addEventListener("click", () => overlay.remove());
-
   overlay.querySelector("#eu-save").addEventListener("click", async () => {
-    const role = overlay.querySelector("#eu-role").value;
-    const name = overlay.querySelector("#eu-name").value.trim();
-    const chapterIds = [...overlay.querySelectorAll(".eu-chapter-check:checked")].map(c => c.value);
     const errEl = overlay.querySelector("#eu-err");
-
     try {
       await updateUserProfile(user.id, {
-        name,
-        role,
-        chapterIds: role === "superAdmin" ? [] : chapterIds,
+        name: overlay.querySelector("#eu-name").value.trim(),
+        role: overlay.querySelector("#eu-role").value,
+        chapterIds: overlay.querySelector("#eu-role").value === "superAdmin"
+          ? [] : [...overlay.querySelectorAll(".eu-chapter-check:checked")].map(c => c.value),
       });
       showToast(t("success"), "success");
       overlay.remove();
       users = await getUsers();
       renderUsers(container);
-    } catch (err) {
-      showErr(errEl, err.message);
-    }
+    } catch (err) { showErr(errEl, err.message); }
   });
 }
 
-// ── Delete User Modal ─────────────────────────────────────────
-function showDeleteUserModal(uid, name, container) {
+function showDeleteConfirm(uid, name, container) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
-
   overlay.innerHTML = `
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title" style="color:var(--danger);">Delete User</h2>
         <button class="modal-close" id="close-del">✕</button>
       </div>
-      <p style="color:var(--text-secondary);margin-bottom:20px;">
-        Are you sure you want to delete <strong>${name}</strong>? This will remove their login access permanently.
-      </p>
-      <div id="del-err" class="form-error hidden" style="margin-bottom:8px;"></div>
+      <p style="color:var(--text-secondary);margin-bottom:8px;">Are you sure you want to delete <strong>${name}</strong>?</p>
+      <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:20px;">This removes them from the app. Their Firebase Auth login must be removed from Firebase Console if needed.</p>
       <div class="modal-footer">
         <button class="btn btn-ghost" id="del-cancel">${t("cancel")}</button>
-        <button class="btn btn-danger" id="del-confirm">
-          <span id="del-label">Delete User</span>
-          <div id="del-spinner" class="spinner hidden" style="width:16px;height:16px;border-width:2px;border-top-color:white;"></div>
-        </button>
+        <button class="btn btn-danger" id="del-confirm">Delete</button>
       </div>
     </div>
   `;
-
   document.body.appendChild(overlay);
   overlay.querySelector("#close-del").addEventListener("click", () => overlay.remove());
   overlay.querySelector("#del-cancel").addEventListener("click", () => overlay.remove());
-
   overlay.querySelector("#del-confirm").addEventListener("click", async () => {
-    const btn = overlay.querySelector("#del-confirm");
-    const errEl = overlay.querySelector("#del-err");
-    btn.disabled = true;
-    overlay.querySelector("#del-label").textContent = "Deleting...";
-    overlay.querySelector("#del-spinner").classList.remove("hidden");
-
     try {
-      const functions = getFunctionsInstance();
-      const deleteUser = httpsCallable(functions, "deleteUser");
-      await deleteUser({ uid });
-
-      showToast("User deleted.", "success");
+      await deleteDoc(doc(db, "users", uid));
+      showToast("User removed.", "success");
       overlay.remove();
       users = await getUsers();
       renderUsers(container);
-    } catch (err) {
-      showErr(errEl, err.message.replace("FirebaseError: ", ""));
-      btn.disabled = false;
-      overlay.querySelector("#del-label").textContent = "Delete User";
-      overlay.querySelector("#del-spinner").classList.add("hidden");
-    }
+    } catch (err) { showToast("Error: " + err.message, "error"); }
   });
 }
 
