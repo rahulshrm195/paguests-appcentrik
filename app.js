@@ -10,10 +10,10 @@ import { t, setLang, getLang, applyTranslations, LANG_LABELS, LANGUAGES } from "
 // 1. Bump APP_VERSION here
 // 2. Add entry to WHATS_NEW below
 // 3. Bump ?v= in index.html CSS + JS src to same number
-export const APP_VERSION = "1.3";
+export const APP_VERSION = "1.4";
 
 export const WHATS_NEW = {
-  "1.3": {
+  "1.4": {
     date: "May 2026",
     title: "Stability Fix",
     items: [

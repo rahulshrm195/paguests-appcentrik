@@ -16,6 +16,8 @@ let meeting = null;
 
 export default async function initAttendance(container) {
   const profile = appState.profile;
+  if (!profile) { container.innerHTML = `<div class='empty-state'><p>Session error. Please refresh.</p></div>`; return; }
+  profile.uid = profile.uid || appState.user?.uid;
   const role = profile?.role;
 
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;

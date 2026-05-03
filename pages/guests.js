@@ -20,6 +20,8 @@ let selectedChapterId = null; // for super admin
 
 export default async function initGuests(container) {
   const profile = appState.profile;
+  if (!profile) { container.innerHTML = `<div class='empty-state'><p>Session error. Please refresh.</p></div>`; return; }
+  profile.uid = profile.uid || appState.user?.uid;
   const role = profile?.role;
 
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
@@ -44,6 +46,8 @@ export default async function initGuests(container) {
 
 function renderGuestList(container) {
   const profile = appState.profile;
+  if (!profile) { container.innerHTML = `<div class='empty-state'><p>Session error. Please refresh.</p></div>`; return; }
+  profile.uid = profile.uid || appState.user?.uid;
   const role = profile?.role;
 
   filteredGuests = applyFilters(allGuests);
