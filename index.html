@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/styles/app.css">
+  <link rel="stylesheet" href="/styles/app.css?v=1.1">
 </head>
 <body>
   <!-- App mounts here via app.js -->
@@ -50,8 +50,13 @@
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
 
-  <!-- App Entry Point -->
-  <script type="module" src="/app.js"></script>
+  <!-- ── VERSION — bump this on every release ── -->
+  <!-- Format: MAJOR.MINOR — e.g. 1.0, 1.1, 1.2  -->
+  <!-- Also update APP_VERSION in app.js          -->
+  <script>window.APP_VERSION = "1.1";</script>
+
+  <!-- App Entry Point — ?v= must match APP_VERSION above -->
+  <script type="module" src="/app.js?v=1.1"></script>
 
   <!-- Service Worker Registration -->
   <script>

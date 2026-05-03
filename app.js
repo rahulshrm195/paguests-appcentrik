@@ -5,6 +5,38 @@
 
 import { onAuthChange, getUserProfile, logoutUser } from "./firebase.js";
 import { t, setLang, getLang, applyTranslations, LANG_LABELS, LANGUAGES } from "./i18n.js";
+// ── Version ───────────────────────────────────────────────────
+// When releasing a new version:
+// 1. Bump APP_VERSION here
+// 2. Add entry to WHATS_NEW below
+// 3. Bump ?v= in index.html CSS + JS src to same number
+export const APP_VERSION = "1.1";
+
+export const WHATS_NEW = {
+  "1.1": {
+    date: "May 2026",
+    title: "User Management",
+    items: [
+      "Super Admin can now create users directly in the app",
+      "Assign roles (Super Admin, Chapter Admin, Desk) from Users page",
+      "Assign chapters to users from the same form",
+      "Edit and remove users without leaving the app",
+    ],
+  },
+  "1.0": {
+    date: "May 2026",
+    title: "Initial Launch",
+    items: [
+      "Public guest registration form — no login required",
+      "Chapter and meeting management",
+      "Guest status tracking — New → Attending → Interested → Converted",
+      "Meeting attendance marking",
+      "4-language support — EN / हि / म / ગુ",
+    ],
+  },
+};
+
+
 
 // ── Page Modules (lazy imported on demand) ────────────────────
 const PAGE_MODULES = {
@@ -83,6 +115,7 @@ function renderLoginPage() {
         <div class="login-logo">
           <span class="login-logo-mark">PA</span>
           <span class="login-logo-sub">Progress Alliance · Guest Tracker</span>
+          <span style="display:block;margin-top:6px;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.1em;">v" + APP_VERSION + "</span>
         </div>
 
         <div id="login-lang-toggle" style="display:flex;justify-content:center;margin-bottom:20px;"></div>
@@ -173,6 +206,9 @@ function initApp() {
 
   const hash = window.location.hash.replace("#", "");
   routeTo(hash || "dashboard");
+
+  // Show What's New on first load after version bump
+  setTimeout(() => showWhatsNewModal(), 800);
 }
 
 function renderAppShell() {
@@ -220,6 +256,7 @@ function renderSidebar() {
     <div class="sidebar-logo">
       <div class="logo-mark">PA Guest Tracker</div>
       <div class="logo-sub">Progress Alliance</div>
+      <div style="font-size:0.6rem;color:var(--text-muted);letter-spacing:0.08em;margin-top:2px;">v" + APP_VERSION + "</div>
     </div>
 
     ${role !== "superAdmin" && profile?.currentChapterName ? `
@@ -246,6 +283,10 @@ function renderSidebar() {
           <div class="user-role">${roleLabel}</div>
         </div>
       </div>
+      <button class="btn btn-ghost btn-sm btn-full" id="whats-new-btn" style="margin-bottom:6px;justify-content:flex-start;gap:8px;color:var(--gold);border-color:var(--gold-border);">
+        ✨ <span>What's New</span>
+        <span style="margin-left:auto;font-size:0.65rem;background:var(--gold);color:var(--navy);padding:1px 6px;border-radius:10px;font-weight:700;">v" + APP_VERSION + "</span>
+      </button>
       <button class="btn btn-ghost btn-sm btn-full" id="logout-btn">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
@@ -267,6 +308,7 @@ function renderSidebar() {
     }
   });
 
+  document.getElementById("whats-new-btn")?.addEventListener("click", () => showWhatsNewModal(true));
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await logoutUser();
   });
@@ -441,4 +483,72 @@ export function formatDateShort(dateVal) {
   if (!dateVal) return "—";
   const d = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal);
   return { day: d.getDate(), month: d.toLocaleString("en-IN", { month: "short" }).toUpperCase() };
+}
+
+// ── What's New Modal ──────────────────────────────────────────
+export function showWhatsNewModal(force = false) {
+  const seenVersion = localStorage.getItem("pa_seen_version");
+  if (!force && seenVersion === APP_VERSION) return;
+
+  const releases = Object.entries(WHATS_NEW);
+  if (!releases.length) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.style.zIndex = "400";
+
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" style="color:var(--gold);">✨ What's New</h2>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">PA Guest Tracker</div>
+        </div>
+        <button class="modal-close" id="wn-close">✕</button>
+      </div>
+
+      ${releases.map(([version, release], i) => `
+        <div style="margin-bottom:${i < releases.length - 1 ? "20px" : "0"};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="
+              font-size:0.7rem;font-weight:700;
+              padding:3px 8px;border-radius:20px;
+              background:${i === 0 ? "var(--gold)" : "var(--surface-active)"};
+              color:${i === 0 ? "var(--navy)" : "var(--text-muted)"};
+              letter-spacing:0.05em;
+            ">v${version}</span>
+            <span style="font-size:0.8rem;font-weight:600;color:var(--text-primary);">${release.title}</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto;">${release.date}</span>
+          </div>
+          <ul style="list-style:none;padding:0;margin:0;">
+            ${release.items.map(item => `
+              <li style="
+                display:flex;align-items:flex-start;gap:8px;
+                padding:6px 0;
+                border-bottom:1px solid rgba(30,54,102,0.4);
+                font-size:0.82rem;color:var(--text-secondary);
+              ">
+                <span style="color:var(--gold);flex-shrink:0;margin-top:1px;">→</span>
+                ${item}
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `).join("")}
+
+      <div class="modal-footer" style="margin-top:20px;">
+        <button class="btn btn-primary btn-full" id="wn-ok">Got it 👍</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const dismiss = () => {
+    localStorage.setItem("pa_seen_version", APP_VERSION);
+    overlay.remove();
+  };
+
+  overlay.querySelector("#wn-close").addEventListener("click", dismiss);
+  overlay.querySelector("#wn-ok").addEventListener("click", dismiss);
 }
