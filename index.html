@@ -1,70 +1,1455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0B1B3A">
-  <meta name="description" content="PA Guest Tracker — Progress Alliance Guest Management">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="PA Guests">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B1B3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PA Guests">
+<title>PA Guest Tracker</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1B3A;--navy-mid:#112247;--navy-light:#1A2F5A;--navy-border:#1E3666;
+  --gold:#C9A84C;--gold-light:#E8C76A;--gold-dim:rgba(201,168,76,0.15);--gold-border:rgba(201,168,76,0.3);
+  --white:#FFFFFF;--off-white:#F4F1EB;--text-primary:#F4F1EB;--text-secondary:rgba(244,241,235,0.6);--text-muted:rgba(244,241,235,0.35);
+  --surface:#112247;--surface-hover:#1A2F5A;--surface-active:#1E3666;
+  --danger:#E05252;--danger-dim:rgba(224,82,82,0.15);
+  --success:#52C07A;--success-dim:rgba(82,192,122,0.15);
+  --warning:#E0A952;--info:#5295E0;--info-dim:rgba(82,149,224,0.15);
+  --status-new:#5295E0;--status-attending:#C9A84C;--status-interested:#A07CE0;
+  --status-converted:#52C07A;--status-not-interested:#E05252;--status-ghosted:#8A8FA8;
+  --radius:12px;--radius-sm:8px;--radius-lg:16px;
+  --nav-width:240px;--header-height:60px;
+  --font-display:'Playfair Display',Georgia,serif;
+  --font-body:'DM Sans',system-ui,sans-serif;
+  --transition:0.2s ease;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--navy);color:var(--text-primary);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--navy)}
+::-webkit-scrollbar-thumb{background:var(--navy-border);border-radius:3px}
+h1,h2,h3{font-family:var(--font-display);line-height:1.2}
+h1{font-size:1.8rem}h2{font-size:1.4rem}h3{font-size:1.1rem}
+p{line-height:1.6;color:var(--text-secondary)}
+a{color:var(--gold);text-decoration:none}
 
-  <title>PA Guest Tracker</title>
+/* ── Layout ─────────────────────────────────────────────────── */
+#app{display:flex;min-height:100vh}
+#sidebar{width:var(--nav-width);background:var(--navy-mid);border-right:1px solid var(--navy-border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform var(--transition)}
+#sidebar.hidden{display:none}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--navy-border)}
+.sidebar-logo .logo-mark{font-family:var(--font-display);font-size:1.3rem;color:var(--gold);letter-spacing:.02em}
+.sidebar-logo .logo-sub{font-size:.7rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.sidebar-logo .logo-ver{font-size:.6rem;color:var(--text-muted);letter-spacing:.08em;margin-top:2px}
+nav.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--text-secondary);font-size:.875rem;font-weight:500;cursor:pointer;transition:all var(--transition);border-left:3px solid transparent;margin:1px 0}
+.nav-item:hover{color:var(--text-primary);background:var(--surface-hover)}
+.nav-item.active{color:var(--gold);background:var(--gold-dim);border-left-color:var(--gold)}
+.nav-item svg{width:18px;height:18px;opacity:.7;flex-shrink:0}
+.nav-item.active svg{opacity:1}
+.sidebar-bottom{padding:16px;border-top:1px solid var(--navy-border)}
+.user-info{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+.user-name{font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+#main{flex:1;margin-left:var(--nav-width);display:flex;flex-direction:column;min-height:100vh}
+#main.full-width{margin-left:0}
+#header{height:var(--header-height);background:var(--navy-mid);border-bottom:1px solid var(--navy-border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50}
+.header-title{font-family:var(--font-display);font-size:1.1rem}
+.header-actions{display:flex;align-items:center;gap:10px}
+#page-content{flex:1;padding:24px;max-width:1200px;width:100%}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+#sidebar-overlay.visible{display:block}
 
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json">
+/* ── Lang Toggle ─────────────────────────────────────────────── */
+.lang-toggle{display:flex;gap:2px;background:var(--navy);border:1px solid var(--navy-border);border-radius:20px;padding:3px}
+.lang-btn{padding:4px 8px;border:none;background:transparent;color:var(--text-muted);font-size:.7rem;font-weight:600;border-radius:14px;cursor:pointer;transition:all var(--transition);font-family:var(--font-body)}
+.lang-btn.active{background:var(--gold);color:var(--navy)}
+.hamburger-btn{display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--text-primary)}
 
-  <!-- Apple Touch Icons -->
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+/* ── Cards ─────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--navy-border);border-radius:var(--radius);padding:20px;transition:border-color var(--transition)}
+.card:hover{border-color:var(--gold-border)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-family:var(--font-display);font-size:1rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--navy-border);border-radius:var(--radius);padding:16px 20px;position:relative;overflow:hidden;transition:all var(--transition)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--gold))}
+.stat-card:hover{border-color:var(--accent-color,var(--gold-border));transform:translateY(-1px)}
+.stat-value{font-family:var(--font-display);font-size:2rem;font-weight:700;line-height:1;margin-bottom:6px}
+.stat-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;font-family:var(--font-body);cursor:pointer;border:none;transition:all var(--transition);white-space:nowrap;text-decoration:none}
+.btn-primary{background:var(--gold);color:var(--navy)}.btn-primary:hover{background:var(--gold-light);transform:translateY(-1px)}
+.btn-secondary{background:var(--surface-active);color:var(--text-primary);border:1px solid var(--navy-border)}.btn-secondary:hover{border-color:var(--gold-border)}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--navy-border)}.btn-ghost:hover{color:var(--text-primary);border-color:var(--gold-border)}
+.btn-danger{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(224,82,82,.3)}.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:.8rem}.btn-lg{padding:12px 24px;font-size:1rem}
+.btn-full{width:100%;justify-content:center}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="/styles/app.css?v=1.4">
+/* ── Forms ─────────────────────────────────────────────────── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.02em}
+.form-label .required{color:var(--gold);margin-left:3px}
+.form-control{width:100%;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text-primary);font-size:.875rem;font-family:var(--font-body);transition:border-color var(--transition);outline:none}
+.form-control:focus{border-color:var(--gold)}.form-control::placeholder{color:var(--text-muted)}
+select.form-control{cursor:pointer}select.form-control option{background:var(--navy-mid)}
+textarea.form-control{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-error{font-size:.75rem;color:var(--danger);margin-top:4px}
+.radio-group{display:flex;gap:8px}
+.radio-option{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);cursor:pointer;font-size:.875rem;color:var(--text-secondary);transition:all var(--transition)}
+.radio-option input{display:none}.radio-option.selected{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+
+/* ── Guest Items ─────────────────────────────────────────────── */
+.guest-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border:1px solid var(--navy-border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;transition:all var(--transition)}
+.guest-item:hover{border-color:var(--gold-border);background:var(--surface-hover)}
+.guest-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold-dim);border:1.5px solid var(--gold-border);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;font-family:var(--font-display)}
+.guest-info{flex:1;margin:0 12px}
+.guest-name{font-weight:600;font-size:.9rem}
+.guest-meta{font-size:.75rem;color:var(--text-muted);margin-top:2px}
+
+/* ── Status Badges ─────────────────────────────────────────── */
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+.status-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.badge-new{color:var(--status-new);background:rgba(82,149,224,.12);border:1px solid rgba(82,149,224,.25)}
+.badge-attending{color:var(--status-attending);background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25)}
+.badge-interested{color:var(--status-interested);background:rgba(160,124,224,.12);border:1px solid rgba(160,124,224,.25)}
+.badge-converted{color:var(--status-converted);background:rgba(82,192,122,.12);border:1px solid rgba(82,192,122,.25)}
+.badge-not-interested{color:var(--status-not-interested);background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.25)}
+.badge-ghosted{color:var(--status-ghosted);background:rgba(138,143,168,.12);border:1px solid rgba(138,143,168,.25)}
+
+/* ── Page Headers ────────────────────────────────────────────── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-title{font-family:var(--font-display);font-size:1.6rem}
+.page-subtitle{font-size:.85rem;color:var(--text-muted);margin-top:4px}
+
+/* ── Filter Bar ─────────────────────────────────────────────── */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.search-input{flex:1;min-width:200px;position:relative}
+.search-input input{padding-left:36px}
+.search-input .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:15px;height:15px}
+.filter-chip{padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:500;cursor:pointer;border:1px solid var(--navy-border);background:var(--navy);color:var(--text-secondary);transition:all var(--transition);white-space:nowrap}
+.filter-chip.active{background:var(--gold-dim);border-color:var(--gold-border);color:var(--gold)}
+
+/* ── Modal ─────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
+@media(min-width:640px){.modal-overlay{align-items:center}}
+.modal{background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;animation:slideUp .3s ease}
+@media(min-width:640px){.modal{border-radius:var(--radius-lg)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-family:var(--font-display);font-size:1.2rem}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;font-size:1.2rem;transition:color var(--transition)}.modal-close:hover{color:var(--text-primary)}
+.modal-footer{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+/* ── Toast ─────────────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 18px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slideInRight .3s ease;max-width:320px}
+.toast-success{background:var(--success);color:var(--navy)}.toast-error{background:var(--danger);color:#fff}.toast-info{background:var(--info);color:#fff}
+
+/* ── Empty & Loading ─────────────────────────────────────────── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-state-icon{font-size:3rem;margin-bottom:12px;display:block}
+.empty-state p{font-size:.9rem;color:var(--text-muted);margin-bottom:16px}
+.loading-spinner{display:flex;align-items:center;justify-content:center;padding:40px}
+.spinner{width:32px;height:32px;border:3px solid var(--navy-border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+
+/* ── Login ─────────────────────────────────────────────────── */
+#login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);position:relative;overflow:hidden}
+#login-page::before{content:'';position:absolute;top:-30%;left:-20%;width:60%;height:60%;background:radial-gradient(circle,rgba(201,168,76,.08) 0%,transparent 70%);pointer-events:none}
+.login-card{width:100%;max-width:400px;margin:24px;background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:var(--radius-lg);padding:36px;position:relative;z-index:1}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo-mark{font-family:var(--font-display);font-size:2rem;color:var(--gold);display:block;line-height:1}
+.login-logo-sub{font-size:.72rem;color:var(--text-muted);letter-spacing:.15em;text-transform:uppercase;margin-top:6px;display:block}
+.login-logo-ver{font-size:.65rem;color:var(--text-muted);letter-spacing:.1em;margin-top:4px;display:block}
+.login-divider{border:none;border-top:1px solid var(--navy-border);margin:24px 0}
+.register-guest-btn{width:100%;padding:12px;background:transparent;border:1px dashed var(--gold-border);border-radius:var(--radius-sm);color:var(--gold);font-size:.875rem;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all var(--transition);display:flex;align-items:center;justify-content:center;gap:8px}
+.register-guest-btn:hover{background:var(--gold-dim);border-style:solid}
+
+/* ── Register ─────────────────────────────────────────────── */
+#register-page{min-height:100vh;background:var(--navy);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px 48px;position:relative;overflow:hidden}
+#register-page::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold-light) 50%,var(--gold) 100%)}
+.register-card{width:100%;max-width:520px;background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:var(--radius-lg);padding:28px 24px;margin-top:20px}
+.register-section-title{font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--navy-border)}
+
+/* ── Meeting Cards ─────────────────────────────────────────── */
+.meeting-card{background:var(--surface);border:1px solid var(--navy-border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;justify-content:space-between}
+.meeting-card:hover{border-color:var(--gold-border)}
+.meeting-date-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:52px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:var(--radius-sm);flex-shrink:0}
+.meeting-date-day{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--gold);line-height:1}
+.meeting-date-month{font-size:.6rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
+
+/* ── Attendance ─────────────────────────────────────────────── */
+.attendance-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);margin-bottom:6px;transition:all var(--transition)}
+.attendance-item.present{background:var(--success-dim);border-color:rgba(82,192,122,.3)}
+.toggle-switch{position:relative;width:44px;height:24px}
+.toggle-switch input{display:none}
+.toggle-track{position:absolute;inset:0;background:var(--navy-border);border-radius:12px;cursor:pointer;transition:background var(--transition)}
+.toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform var(--transition)}
+.toggle-switch input:checked+.toggle-track{background:var(--success)}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(20px)}
+
+/* ── Followup ─────────────────────────────────────────────── */
+.followup-timeline{position:relative;padding-left:24px}
+.followup-timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--navy-border)}
+.followup-item{position:relative;margin-bottom:16px}
+.followup-item::before{content:'';position:absolute;left:-20px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--gold);border:2px solid var(--navy-mid)}
+.followup-date{font-size:.72rem;color:var(--text-muted);margin-bottom:4px}
+.followup-notes{font-size:.85rem;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:10px 12px}
+.followup-by{font-size:.72rem;color:var(--text-muted);margin-top:4px}
+
+/* ── Animations ─────────────────────────────────────────────── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideInRight{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeInUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.fade-in{animation:fadeInUp .3s ease both}
+
+/* ── Utilities ─────────────────────────────────────────────── */
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}
+.justify-between{justify-content:space-between}.gap-2{gap:8px}.gap-3{gap:12px}
+.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
+.mb-2{margin-bottom:8px}.mb-4{margin-bottom:16px}
+.text-gold{color:var(--gold)}.text-muted{color:var(--text-muted)}
+.text-sm{font-size:.8rem}.text-xs{font-size:.72rem}
+.w-full{width:100%}.hidden{display:none!important}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Mobile ─────────────────────────────────────────────────── */
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%);box-shadow:4px 0 20px rgba(0,0,0,.4)}
+  #sidebar.open{transform:translateX(0)}
+  .hamburger-btn{display:flex}
+  #main{margin-left:0}
+  #page-content{padding:16px}
+  .form-row{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .page-header{flex-direction:column;align-items:flex-start}
+  #toast-container{left:16px;right:16px;bottom:16px}
+  .toast{max-width:100%}
+  .modal{max-height:95vh}
+}
+</style>
 </head>
 <body>
-  <!-- App mounts here via app.js -->
-  <div id="initial-loader" style="
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#0B1B3A;
-    flex-direction:column;
-    gap:16px;
-  ">
-    <div style="
-      font-family:'Playfair Display',Georgia,serif;
-      font-size:2.5rem;
-      color:#C9A84C;
-      letter-spacing:0.05em;
-    ">PA</div>
-    <div style="
-      width:32px;height:32px;
-      border:3px solid #1E3666;
-      border-top-color:#C9A84C;
-      border-radius:50%;
-      animation:spin 0.8s linear infinite;
-    "></div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-  </div>
+<div id="root"></div>
+<div id="toast-container"></div>
 
-  <!-- ── VERSION — bump this on every release ── -->
-  <!-- Format: MAJOR.MINOR — e.g. 1.0, 1.1, 1.2  -->
-  <!-- Also update APP_VERSION in app.js          -->
-  <script>window.APP_VERSION = "1.4";</script>
+<script type="module">
+// ════════════════════════════════════════════════════════════
+// PA GUEST TRACKER — v2.0
+// Single file, no module imports between files
+// ════════════════════════════════════════════════════════════
 
-  <!-- App Entry Point — ?v= must match APP_VERSION above -->
-  <script type="module" src="/app.js?v=1.4"></script>
+// ── VERSION ──────────────────────────────────────────────────
+// To release a new version:
+// 1. Bump APP_VERSION
+// 2. Add entry to WHATS_NEW
+// 3. Push — done. No cache busting needed (single file)
+const APP_VERSION = "2.0";
+const WHATS_NEW = {
+  "2.0": {
+    date: "May 2026",
+    title: "Rebuilt & Stable",
+    items: [
+      "Rebuilt as single-file app — faster, no import errors",
+      "Fixed all profile loading and dashboard errors",
+      "Cleaner codebase, easier to update going forward",
+    ],
+  },
+  "1.1": {
+    date: "May 2026",
+    title: "User Management",
+    items: [
+      "Super Admin can create users directly in the app",
+      "Assign roles and chapters from Users page",
+    ],
+  },
+  "1.0": {
+    date: "May 2026",
+    title: "Initial Launch",
+    items: [
+      "Public guest registration — no login required",
+      "Chapter and meeting management",
+      "Guest status tracking and follow-ups",
+      "4-language support — EN / हि / म / ગુ",
+    ],
+  },
+};
 
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
+// ── FIREBASE ─────────────────────────────────────────────────
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ⚠️ REPLACE WITH YOUR FIREBASE CONFIG
+/*const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "pa-guest-tracker.firebaseapp.com",
+  projectId: "pa-guest-tracker",
+  storageBucket: "pa-guest-tracker.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};*/
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFv6P4tf7695y2_aaZ7x9tT6DlVrpOAZ8",
+  authDomain: "pa-guest-tracker.firebaseapp.com",
+  projectId: "pa-guest-tracker",
+  storageBucket: "pa-guest-tracker.firebasestorage.app",
+  messagingSenderId: "856716716643",
+  appId: "1:856716716643:web:f05bf047510a83c158e656",
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+// Secondary app for user creation (keeps Super Admin logged in)
+function getSecondaryAuth() {
+  const existing = getApps().find(a => a.name === "secondary");
+  if (existing) return getAuth(existing);
+  return getAuth(initializeApp(firebaseConfig, "secondary"));
+}
+
+// ── DB HELPERS ────────────────────────────────────────────────
+const getUserProfile  = async uid => { const s = await getDoc(doc(db,"users",uid)); return s.exists()?{id:s.id,...s.data()}:null; };
+const createUserProf  = async (uid,data) => setDoc(doc(db,"users",uid),{...data,createdAt:serverTimestamp()});
+const getChapters     = async () => { const s = await getDocs(query(collection(db,"chapters"),orderBy("name"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const getChaptersByAdmin = async uid => { const s = await getDocs(query(collection(db,"chapters"),where("adminUids","array-contains",uid))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const createChapter   = async data => addDoc(collection(db,"chapters"),{...data,createdAt:serverTimestamp()});
+const updateChapter   = async (id,data) => updateDoc(doc(db,"chapters",id),{...data,updatedAt:serverTimestamp()});
+const deleteChapter   = async id => deleteDoc(doc(db,"chapters",id));
+const getMeetings     = async cid => { const s = await getDocs(query(collection(db,"meetings"),where("chapterId","==",cid),orderBy("date","desc"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const getUpcomingMtgs = async cid => { const now=new Date();now.setHours(0,0,0,0); const s = await getDocs(query(collection(db,"meetings"),where("chapterId","==",cid),orderBy("date","asc"))); return s.docs.map(d=>({id:d.id,...d.data()})).filter(m=>{const d=m.date?.toDate?m.date.toDate():new Date(m.date);return d>=now;}); };
+const getMeeting      = async id => { const s = await getDoc(doc(db,"meetings",id)); return s.exists()?{id:s.id,...s.data()}:null; };
+const createMeeting   = async data => addDoc(collection(db,"meetings"),{...data,attendees:[],createdAt:serverTimestamp()});
+const updateMeeting   = async (id,data) => updateDoc(doc(db,"meetings",id),{...data,updatedAt:serverTimestamp()});
+const getGuests       = async cid => { const s = await getDocs(query(collection(db,"guests"),where("chapterId","==",cid),orderBy("createdAt","desc"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const getAllGuests     = async () => { const s = await getDocs(query(collection(db,"guests"),orderBy("createdAt","desc"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const getGuest        = async id => { const s = await getDoc(doc(db,"guests",id)); return s.exists()?{id:s.id,...s.data()}:null; };
+const registerGuest   = async data => addDoc(collection(db,"guests"),{...data,status:"New",meetingsAttended:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+const updateGuest     = async (id,data) => updateDoc(doc(db,"guests",id),{...data,updatedAt:serverTimestamp()});
+const deleteGuest     = async id => deleteDoc(doc(db,"guests",id));
+const getFollowups    = async gid => { const s = await getDocs(query(collection(db,"followups"),where("guestId","==",gid),orderBy("createdAt","desc"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const addFollowup     = async data => addDoc(collection(db,"followups"),{...data,createdAt:serverTimestamp()});
+const getUsers        = async () => { const s = await getDocs(query(collection(db,"users"),orderBy("name"))); return s.docs.map(d=>({id:d.id,...d.data()})); };
+const updateUserProf  = async (uid,data) => updateDoc(doc(db,"users",uid),{...data,updatedAt:serverTimestamp()});
+
+const markAttendance = async (meetingId,guestId,present) => {
+  const mSnap = await getDoc(doc(db,"meetings",meetingId));
+  if(!mSnap.exists()) return;
+  let attendees = mSnap.data().attendees||[];
+  if(present && !attendees.includes(guestId)) attendees.push(guestId);
+  else if(!present) attendees = attendees.filter(id=>id!==guestId);
+  await updateDoc(doc(db,"meetings",meetingId),{attendees,updatedAt:serverTimestamp()});
+  const gSnap = await getDoc(doc(db,"guests",guestId));
+  if(!gSnap.exists()) return;
+  let ma = gSnap.data().meetingsAttended||[];
+  if(present && !ma.includes(meetingId)){
+    ma.push(meetingId);
+    const upd = {meetingsAttended:ma,updatedAt:serverTimestamp()};
+    if(gSnap.data().status==="New") upd.status="Attending";
+    await updateDoc(doc(db,"guests",guestId),upd);
+  } else if(!present){
+    await updateDoc(doc(db,"guests",guestId),{meetingsAttended:ma.filter(id=>id!==meetingId),updatedAt:serverTimestamp()});
+  }
+};
+
+// ── i18n ─────────────────────────────────────────────────────
+const LANGS = ["en","hi","mr","gu"];
+const LANG_LABELS = {en:"EN",hi:"हि",mr:"म",gu:"ગુ"};
+let _lang = localStorage.getItem("pa_lang")||"en";
+
+const TR = {
+  en:{
+    appName:"PA Guest Tracker",login:"Login",logout:"Logout",email:"Email",password:"Password",loginBtn:"Sign In",loginError:"Invalid email or password.",
+    registerGuest:"Register a Guest",dashboard:"Dashboard",guests:"Guests",meetings:"Meetings",chapters:"Chapters",users:"Users",attendance:"Attendance",
+    totalGuests:"Total Guests",thisMonth:"This Month",converted:"Converted",interested:"Interested",attending:"Attending",newGuests:"New",
+    notInterested:"Not Interested",ghosted:"Ghosted",upcomingMeeting:"Next Meeting",noUpcomingMeeting:"No upcoming meetings",
+    recentGuests:"Recent Guests",conversionRate:"Conversion Rate",allChapters:"All Chapters",selectChapter:"Select Chapter",
+    addGuest:"Add Guest",editGuest:"Edit Guest",guestName:"Guest Name",guestPhone:"Guest Phone",
+    businessName:"Business Name",businessType:"Business Type",referredByName:"Referred By (Name)",referredByPhone:"Referred By (Phone)",
+    chapter:"Chapter",expectedMeeting:"Expected Meeting",notDecided:"Not decided yet",feePaid:"Guest Fee Paid?",feePaidYes:"Yes",feePaidNo:"No",
+    status:"Status",save:"Save",cancel:"Cancel",delete:"Delete",confirmDelete:"Are you sure?",
+    guestRegistered:"Guest registered successfully!",submitAnother:"Register Another Guest",backToHome:"Back to Home",
+    guestDetails:"Guest Details",meetingsAttended:"Meetings Attended",noMeetingsAttended:"No meetings attended yet",
+    followUpLog:"Follow-up Log",addFollowUp:"Add Follow-up",followUpBy:"Followed up by",followUpNotes:"Notes",followUpOutcome:"Outcome",noFollowUps:"No follow-ups yet",
+    updateStatus:"Update Status",meetingsList:"Meetings",addMeeting:"Add Meeting",meetingDate:"Meeting Date",meetingVenue:"Venue",meetingNotes:"Notes",noMeetings:"No meetings found",
+    markAttendance:"Mark Attendance",attendancePage:"Meeting Attendance",selectMeeting:"Select Meeting",
+    markPresent:"Present",attendanceSaved:"Attendance saved!",noGuestsForMeeting:"No guests for this meeting",
+    chaptersList:"Chapters",addChapter:"Add Chapter",chapterName:"Chapter Name",chapterCity:"City",chapterAdmins:"Chapter Admins",noChapters:"No chapters found",
+    usersList:"Users",addUser:"Add User",userName:"Full Name",userEmail:"Email",userRole:"Role",userChapters:"Assigned Chapters",
+    roleSuperAdmin:"Super Admin",roleChapterAdmin:"Chapter Admin",roleDesk:"Registration Desk",noUsers:"No users found",
+    statusNew:"New",statusAttending:"Attending",statusInterested:"Interested",statusConverted:"Converted",statusNotInterested:"Not Interested",statusGhosted:"Ghosted",
+    loading:"Loading...",noData:"No data found",search:"Search",all:"All",yes:"Yes",no:"No",edit:"Edit",back:"Back",submit:"Submit",close:"Close",required:"This field is required",
+    businessTypes:["Manufacturing","Retail","Wholesale","Service","Trading","Construction","Food & Beverage","Healthcare","Education","Technology","Textile","Logistics","Real Estate","Finance","Other"],
+    outcomes:["Interested to join","Will attend next meeting","Needs more time","Not interested","No response","Converted to member"],
+  },
+  hi:{
+    appName:"PA गेस्ट ट्रैकर",login:"लॉगिन",logout:"लॉगआउट",email:"ईमेल",password:"पासवर्ड",loginBtn:"साइन इन करें",loginError:"गलत ईमेल या पासवर्ड।",
+    registerGuest:"गेस्ट रजिस्टर करें",dashboard:"डैशबोर्ड",guests:"गेस्ट",meetings:"मीटिंग",chapters:"चैप्टर",users:"यूजर",attendance:"उपस्थिति",
+    totalGuests:"कुल गेस्ट",thisMonth:"इस महीने",converted:"जुड़े",interested:"रुचि है",attending:"आ रहे हैं",newGuests:"नए",
+    notInterested:"रुचि नहीं",ghosted:"गायब",upcomingMeeting:"अगली मीटिंग",noUpcomingMeeting:"कोई मीटिंग नहीं",
+    recentGuests:"हाल के गेस्ट",conversionRate:"कन्वर्ज़न दर",allChapters:"सभी चैप्टर",selectChapter:"चैप्टर चुनें",
+    addGuest:"गेस्ट जोड़ें",editGuest:"गेस्ट संपादित करें",guestName:"गेस्ट का नाम",guestPhone:"गेस्ट का फ़ोन",
+    businessName:"व्यवसाय का नाम",businessType:"व्यवसाय का प्रकार",referredByName:"किसने बुलाया (नाम)",referredByPhone:"किसने बुलाया (फ़ोन)",
+    chapter:"चैप्टर",expectedMeeting:"अपेक्षित मीटिंग",notDecided:"अभी तय नहीं",feePaid:"गेस्ट फ़ीस भरी?",feePaidYes:"हाँ",feePaidNo:"नहीं",
+    status:"स्थिति",save:"सेव करें",cancel:"रद्द करें",delete:"हटाएं",confirmDelete:"क्या आप वाकई हटाना चाहते हैं?",
+    guestRegistered:"गेस्ट सफलतापूर्वक रजिस्टर हुए!",submitAnother:"एक और गेस्ट रजिस्टर करें",backToHome:"होम पर वापस",
+    guestDetails:"गेस्ट विवरण",meetingsAttended:"हाज़िर मीटिंग",noMeetingsAttended:"अभी कोई मीटिंग नहीं",
+    followUpLog:"फ़ॉलो-अप लॉग",addFollowUp:"फ़ॉलो-अप जोड़ें",followUpBy:"किसने किया",followUpNotes:"नोट्स",followUpOutcome:"परिणाम",noFollowUps:"कोई फ़ॉलो-अप नहीं",
+    updateStatus:"स्थिति अपडेट करें",meetingsList:"मीटिंग",addMeeting:"मीटिंग जोड़ें",meetingDate:"तारीख",meetingVenue:"स्थान",meetingNotes:"नोट्स",noMeetings:"कोई मीटिंग नहीं",
+    markAttendance:"उपस्थिती दर्ज करें",attendancePage:"मीटिंग उपस्थिति",selectMeeting:"मीटिंग चुनें",
+    markPresent:"उपस्थित",attendanceSaved:"उपस्थिति सेव हुई!",noGuestsForMeeting:"इस मीटिंग के लिए कोई गेस्ट नहीं",
+    chaptersList:"चैप्टर",addChapter:"चैप्टर जोड़ें",chapterName:"चैप्टर का नाम",chapterCity:"शहर",chapterAdmins:"चैप्टर एडमिन",noChapters:"कोई चैप्टर नहीं",
+    usersList:"यूजर",addUser:"यूजर जोड़ें",userName:"पूरा नाम",userEmail:"ईमेल",userRole:"भूमिका",userChapters:"असाइन किए चैप्टर",
+    roleSuperAdmin:"सुपर एडमिन",roleChapterAdmin:"चैप्टर एडमिन",roleDesk:"रजिस्ट्रेशन डेस्क",noUsers:"कोई यूजर नहीं",
+    statusNew:"नया",statusAttending:"आ रहे हैं",statusInterested:"रुचि है",statusConverted:"जुड़े",statusNotInterested:"रुचि नहीं",statusGhosted:"गायब",
+    loading:"लोड हो रहा है...",noData:"कोई डेटा नहीं",search:"खोजें",all:"सभी",yes:"हाँ",no:"नहीं",edit:"संपादित करें",back:"वापस",submit:"जमा करें",close:"बंद करें",required:"यह फ़ील्ड आवश्यक है",
+    businessTypes:["उत्पादन","खुदरा","थोक","सेवा","व्यापार","निर्माण","खाद्य और पेय","स्वास्थ्य","शिक्षण","तकनीक","टेक्सटाइल","लॉजिस्टिक्स","रियल एस्टेट","वित्त","अन्य"],
+    outcomes:["जुड़ने में रुचि","अगली मीटिंग में आएंगे","समय चाहिए","रुचि नहीं","कोई जवाब नहीं","सदस्य बने"],
+  },
+  mr:{
+    appName:"PA गेस्ट ट्रॅकर",login:"लॉगिन",logout:"लॉगआउट",email:"ईमेल",password:"पासवर्ड",loginBtn:"साइन इन करा",loginError:"चुकीचा ईमेल किंवा पासवर्ड.",
+    registerGuest:"गेस्ट नोंदवा",dashboard:"डॅशबोर्ड",guests:"गेस्ट",meetings:"बैठक",chapters:"चॅप्टर",users:"वापरकर्ते",attendance:"उपस्थिती",
+    totalGuests:"एकूण गेस्ट",thisMonth:"या महिन्यात",converted:"सामील झाले",interested:"इच्छुक",attending:"येत आहेत",newGuests:"नवीन",
+    notInterested:"इच्छुक नाही",ghosted:"गायब",upcomingMeeting:"पुढील बैठक",noUpcomingMeeting:"आगामी बैठक नाही",
+    recentGuests:"अलीकडील गेस्ट",conversionRate:"रूपांतरण दर",allChapters:"सर्व चॅप्टर",selectChapter:"चॅप्टर निवडा",
+    addGuest:"गेस्ट जोडा",editGuest:"गेस्ट संपादित करा",guestName:"गेस्टचे नाव",guestPhone:"गेस्टचा फोन",
+    businessName:"व्यवसायाचे नाव",businessType:"व्यवसायाचा प्रकार",referredByName:"कोणी बोलावले (नाव)",referredByPhone:"कोणी बोलावले (फोन)",
+    chapter:"चॅप्टर",expectedMeeting:"अपेक्षित बैठक",notDecided:"अजून ठरले नाही",feePaid:"गेस्ट फी भरली?",feePaidYes:"होय",feePaidNo:"नाही",
+    status:"स्थिती",save:"सेव्ह करा",cancel:"रद्द करा",delete:"हटवा",confirmDelete:"तुम्हाला खात्री आहे का?",
+    guestRegistered:"गेस्ट यशस्वीरित्या नोंदवला!",submitAnother:"आणखी एक गेस्ट नोंदवा",backToHome:"मुख्यपृष्ठावर परत",
+    guestDetails:"गेस्ट तपशील",meetingsAttended:"उपस्थित बैठका",noMeetingsAttended:"अद्याप कोणतीही बैठक नाही",
+    followUpLog:"फॉलो-अप नोंद",addFollowUp:"फॉलो-अप जोडा",followUpBy:"कोणी केले",followUpNotes:"नोट्स",followUpOutcome:"परिणाम",noFollowUps:"कोणतेही फॉलो-अप नाही",
+    updateStatus:"स्थिती अपडेट करा",meetingsList:"बैठका",addMeeting:"बैठक जोडा",meetingDate:"बैठकीची तारीख",meetingVenue:"ठिकाण",meetingNotes:"नोट्स",noMeetings:"कोणतीही बैठक नाही",
+    markAttendance:"उपस्थिती नोंदवा",attendancePage:"बैठक उपस्थिती",selectMeeting:"बैठक निवडा",
+    markPresent:"उपस्थित",attendanceSaved:"उपस्थिती सेव्ह झाली!",noGuestsForMeeting:"या बैठकीसाठी कोणतेही गेस्ट नाही",
+    chaptersList:"चॅप्टर",addChapter:"चॅप्टर जोडा",chapterName:"चॅप्टरचे नाव",chapterCity:"शहर",chapterAdmins:"चॅप्टर एडमिन",noChapters:"कोणतेही चॅप्टर नाही",
+    usersList:"वापरकर्ते",addUser:"वापरकर्ता जोडा",userName:"पूर्ण नाव",userEmail:"ईमेल",userRole:"भूमिका",userChapters:"नियुक्त चॅप्टर",
+    roleSuperAdmin:"सुपर एडमिन",roleChapterAdmin:"चॅप्टर एडमिन",roleDesk:"नोंदणी डेस्क",noUsers:"कोणतेही वापरकर्ते नाही",
+    statusNew:"नवीन",statusAttending:"येत आहेत",statusInterested:"इच्छुक",statusConverted:"सामील झाले",statusNotInterested:"इच्छुक नाही",statusGhosted:"गायब",
+    loading:"लोड होत आहे...",noData:"कोणताही डेटा नाही",search:"शोधा",all:"सर्व",yes:"होय",no:"नाही",edit:"संपादित करा",back:"मागे",submit:"सबमिट करा",close:"बंद करा",required:"हे फील्ड आवश्यक आहे",
+    businessTypes:["उत्पादन","किरकोळ","घाऊक","सेवा","व्यापार","बांधकाम","अन्न आणि पेय","आरोग्य","शिक्षण","तंत्रज्ञान","कापड","लॉजिस्टिक्स","रिअल इस्टेट","वित्त","इतर"],
+    outcomes:["सामील होण्यास इच्छुक","पुढील बैठकीला येतील","वेळ हवा आहे","इच्छुक नाही","कोणताही प्रतिसाद नाही","सदस्य झाले"],
+  },
+  gu:{
+    appName:"PA ગેસ્ટ ટ્રૅકર",login:"લૉગિન",logout:"લૉગઆઉટ",email:"ઈમેઈલ",password:"પાસવર્ડ",loginBtn:"સાઇન ઇન કરો",loginError:"ખોટો ઈમેઈલ અથવા પાસવર્ડ.",
+    registerGuest:"ગેસ્ટ નોંધો",dashboard:"ડૅશબોર્ડ",guests:"ગેસ્ટ",meetings:"મીટિંગ",chapters:"ચૅપ્ટર",users:"વપરાશકર્તા",attendance:"હાજરી",
+    totalGuests:"કુલ ગેસ્ટ",thisMonth:"આ મહિને",converted:"જોડાયા",interested:"રસ છે",attending:"આવી રહ્યા છે",newGuests:"નવા",
+    notInterested:"રસ નથી",ghosted:"ગાયબ",upcomingMeeting:"આગળની મીટિંગ",noUpcomingMeeting:"કોઈ આગામી મીટિંગ નથી",
+    recentGuests:"તાજેતરના ગેસ્ટ",conversionRate:"રૂપાંતરણ દર",allChapters:"બધા ચૅપ્ટર",selectChapter:"ચૅપ્ટર પસંદ કરો",
+    addGuest:"ગેસ્ટ ઉમેરો",editGuest:"ગેસ્ટ સંપાદિત કરો",guestName:"ગેસ્ટનું નામ",guestPhone:"ગેસ્ટનો ફોન",
+    businessName:"વ્યવસાયનું નામ",businessType:"વ્યવસાયનો પ્રકાર",referredByName:"કોણે બોલાવ્યા (નામ)",referredByPhone:"કોણે બોલાવ્યા (ફોન)",
+    chapter:"ચૅપ્ટર",expectedMeeting:"અપેક્ષિત મીટિંગ",notDecided:"હજી નક્કી નથી",feePaid:"ગેસ્ટ ફી ભરી?",feePaidYes:"હા",feePaidNo:"ના",
+    status:"સ્થિતિ",save:"સેવ કરો",cancel:"રદ કરો",delete:"કાઢો",confirmDelete:"શું તમે ખાતરી ધરાવો છો?",
+    guestRegistered:"ગેસ્ટ સફળતાપૂર્વક નોંધાઈ ગયા!",submitAnother:"બીજો ગેસ્ટ નોંધો",backToHome:"હોમ પર પાછા",
+    guestDetails:"ગેસ્ટ વિગત",meetingsAttended:"હાજર રહેલ મીટિંગ",noMeetingsAttended:"હજી કોઈ મીટિંગ નહીં",
+    followUpLog:"ફૉલો-અપ નોંધ",addFollowUp:"ફૉલો-અપ ઉમેરો",followUpBy:"કોણે કર્યું",followUpNotes:"નોંધ",followUpOutcome:"પરિણામ",noFollowUps:"કોઈ ફૉલો-અપ નથી",
+    updateStatus:"સ્થિતિ અપડેટ કરો",meetingsList:"મીટિંગ",addMeeting:"મીટિંગ ઉમેરો",meetingDate:"મીટિંગ તારીખ",meetingVenue:"સ્થળ",meetingNotes:"નોંધ",noMeetings:"કોઈ મીટિંગ નથી",
+    markAttendance:"હાજરી નોંધો",attendancePage:"મીટિંગ હાજરી",selectMeeting:"મીટિંગ પસંદ કરો",
+    markPresent:"હાજર",attendanceSaved:"હાજરી સેવ થઈ!",noGuestsForMeeting:"આ મીટિંગ માટે કોઈ ગેસ્ટ નથી",
+    chaptersList:"ચૅપ્ટર",addChapter:"ચૅપ્ટર ઉમેરો",chapterName:"ચૅપ્ટરનું નામ",chapterCity:"શહેર",chapterAdmins:"ચૅપ્ટર એડમિન",noChapters:"કોઈ ચૅપ્ટર નથી",
+    usersList:"વપરાશકર્તા",addUser:"વપરાશકર્તા ઉમેરો",userName:"પૂરું નામ",userEmail:"ઈમેઈલ",userRole:"ભૂમિકા",userChapters:"સોંપેલ ચૅપ્ટર",
+    roleSuperAdmin:"સુપર એડમિન",roleChapterAdmin:"ચૅપ્ટર એડમિન",roleDesk:"નોંધણી ડેસ્ક",noUsers:"કોઈ વપરાશકર્તા નથી",
+    statusNew:"નવા",statusAttending:"આવી રહ્યા છે",statusInterested:"રસ છે",statusConverted:"જોડાયા",statusNotInterested:"રસ નથી",statusGhosted:"ગાયબ",
+    loading:"લોડ થઈ રહ્યું છે...",noData:"કોઈ ડેટા નથી",search:"શોધો",all:"બધા",yes:"હા",no:"ના",edit:"સંપાદિત કરો",back:"પાછા",submit:"સબમિટ કરો",close:"બંધ કરો",required:"આ ક્ષેત્ર જરૂરી છે",
+    businessTypes:["ઉત્પાદન","છૂટક","જથ્થાબંધ","સેવા","વ્યાપાર","બાંધકામ","ખોરાક અને પીણું","આરોગ્ય","શિક્ષણ","ટેક્નૉલૉજી","કાપડ","લૉજિસ્ટિક્સ","રિયલ એસ્ટેટ","નાણું","અન્ય"],
+    outcomes:["જોડાવા ઈચ્છુક","આગળની મીટિંગમાં આવશે","સમય જોઈએ","રસ નથી","કોઈ પ્રતિભાવ નથી","સભ્ય બન્યા"],
+  },
+};
+
+const t = key => TR[_lang]?.[key] ?? TR.en[key] ?? key;
+const setLang = lang => { if(LANGS.includes(lang)){_lang=lang;localStorage.setItem("pa_lang",lang);document.documentElement.lang=lang;} };
+
+// ── APP STATE ─────────────────────────────────────────────────
+const state = { user:null, profile:null, page:"dashboard", chapterId:null, guestId:null, sidebarOpen:false };
+
+// ── HELPERS ───────────────────────────────────────────────────
+const fmtDate = v => { if(!v) return "—"; const d=v?.toDate?v.toDate():new Date(v); return d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}); };
+const fmtShort = v => { if(!v) return {day:"—",month:"—"}; const d=v?.toDate?v.toDate():new Date(v); return {day:d.getDate(),month:d.toLocaleString("en-IN",{month:"short"}).toUpperCase()}; };
+const initials = name => (name||"U").split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
+
+const statusBadge = s => {
+  const m={New:["badge-new","statusNew"],Attending:["badge-attending","statusAttending"],Interested:["badge-interested","statusInterested"],Converted:["badge-converted","statusConverted"],NotInterested:["badge-not-interested","statusNotInterested"],Ghosted:["badge-ghosted","statusGhosted"]};
+  const [cls,key]=m[s]||["badge-new","statusNew"];
+  return `<span class="status-badge ${cls}">${t(key)}</span>`;
+};
+
+const showToast = (msg,type="info") => {
+  const c=document.getElementById("toast-container");if(!c)return;
+  const el=document.createElement("div");el.className=`toast toast-${type}`;el.textContent=msg;c.appendChild(el);
+  setTimeout(()=>{el.style.opacity="0";el.style.transform="translateX(100px)";el.style.transition="all .3s ease";setTimeout(()=>el.remove(),300);},3000);
+};
+
+const langToggleHTML = () => `<div class="lang-toggle">${LANGS.map(l=>`<button class="lang-btn${_lang===l?" active":""}" data-lang="${l}">${LANG_LABELS[l]}</button>`).join("")}</div>`;
+
+const bindLangToggle = el => {
+  if(!el) return;
+  el.addEventListener("click",e=>{
+    const btn=e.target.closest(".lang-btn");if(!btn)return;
+    setLang(btn.dataset.lang);
+    render();
+  });
+};
+
+// ── MODAL HELPER ──────────────────────────────────────────────
+const modal = (title,bodyHTML,footerHTML) => {
+  const o=document.createElement("div");o.className="modal-overlay";
+  o.innerHTML=`<div class="modal"><div class="modal-header"><h2 class="modal-title">${title}</h2><button class="modal-close" id="mc">✕</button></div>${bodyHTML}<div class="modal-footer">${footerHTML}</div></div>`;
+  document.body.appendChild(o);
+  o.querySelector("#mc").onclick=()=>o.remove();
+  o.onclick=e=>{if(e.target===o)o.remove();};
+  return o;
+};
+
+// ── ROUTER ────────────────────────────────────────────────────
+const routeTo = (page,params={}) => {
+  state.page=page;
+  if(params.guestId) state.guestId=params.guestId;
+  render();
+};
+
+// ── WHAT'S NEW ────────────────────────────────────────────────
+const showWhatsNew = (force=false) => {
+  if(!force && localStorage.getItem("pa_seen_ver")===APP_VERSION) return;
+  const releases=Object.entries(WHATS_NEW);
+  const o=document.createElement("div");o.className="modal-overlay";o.style.zIndex="400";
+  o.innerHTML=`<div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div><h2 class="modal-title" style="color:var(--gold)">✨ What's New</h2><div class="text-xs text-muted mt-1">PA Guest Tracker</div></div>
+      <button class="modal-close" id="wn-close">✕</button>
+    </div>
+    ${releases.map(([v,r],i)=>`
+      <div style="margin-bottom:${i<releases.length-1?"20px":"0"}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;background:${i===0?"var(--gold)":"var(--surface-active)"};color:${i===0?"var(--navy)":"var(--text-muted)"}">v${v}</span>
+          <span style="font-size:.8rem;font-weight:600">${r.title}</span>
+          <span style="font-size:.72rem;color:var(--text-muted);margin-left:auto">${r.date}</span>
+        </div>
+        <ul style="list-style:none;padding:0">
+          ${r.items.map(item=>`<li style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(30,54,102,.4);font-size:.82rem;color:var(--text-secondary)"><span style="color:var(--gold);flex-shrink:0">→</span>${item}</li>`).join("")}
+        </ul>
+      </div>
+    `).join("")}
+    <div class="modal-footer mt-4"><button class="btn btn-primary btn-full" id="wn-ok">Got it 👍</button></div>
+  </div>`;
+  document.body.appendChild(o);
+  const dismiss=()=>{localStorage.setItem("pa_seen_ver",APP_VERSION);o.remove();};
+  o.querySelector("#wn-close").onclick=dismiss;
+  o.querySelector("#wn-ok").onclick=dismiss;
+};
+
+// ── LOGIN PAGE ────────────────────────────────────────────────
+const renderLogin = () => {
+  document.getElementById("root").innerHTML=`
+    <div id="login-page">
+      <div class="login-card fade-in">
+        <div class="login-logo">
+          <span class="login-logo-mark">PA</span>
+          <span class="login-logo-sub">Progress Alliance · Guest Tracker</span>
+          <span class="login-logo-ver">v${APP_VERSION}</span>
+        </div>
+        <div id="lt" style="display:flex;justify-content:center;margin-bottom:20px">${langToggleHTML()}</div>
+        <div class="form-group">
+          <label class="form-label">${t("email")}</label>
+          <input id="lemail" type="email" class="form-control" placeholder="${t("email")}" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">${t("password")}</label>
+          <input id="lpw" type="password" class="form-control" placeholder="${t("password")}" autocomplete="current-password">
+        </div>
+        <div id="lerr" class="form-error hidden" style="margin-bottom:12px"></div>
+        <button class="btn btn-primary btn-full btn-lg" id="lbtn">${t("loginBtn")}</button>
+        <hr class="login-divider">
+        <button class="register-guest-btn" id="goto-reg">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          ${t("registerGuest")}
+        </button>
+      </div>
+    </div>`;
+  bindLangToggle(document.getElementById("lt"));
+  const doLogin = async () => {
+    const email=document.getElementById("lemail").value.trim();
+    const pw=document.getElementById("lpw").value;
+    const err=document.getElementById("lerr");
+    const btn=document.getElementById("lbtn");
+    if(!email||!pw){err.textContent=t("required");err.classList.remove("hidden");return;}
+    btn.disabled=true;btn.innerHTML=`<div class="spinner" style="width:18px;height:18px;border-width:2px"></div>`;err.classList.add("hidden");
+    try{ await signInWithEmailAndPassword(auth,email,pw); }
+    catch(e){ err.textContent=t("loginError");err.classList.remove("hidden");btn.disabled=false;btn.textContent=t("loginBtn"); }
+  };
+  document.getElementById("lbtn").onclick=doLogin;
+  document.getElementById("lpw").onkeydown=e=>{if(e.key==="Enter")doLogin();};
+  document.getElementById("goto-reg").onclick=()=>renderRegisterPage();
+};
+
+// ── REGISTER PAGE (Public) ────────────────────────────────────
+const renderRegisterPage = async () => {
+  const chapters = await getChapters();
+  document.getElementById("root").innerHTML=`
+    <div id="register-page">
+      <div class="register-card fade-in">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold)">PA</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px">Progress Alliance · Guest Registration</div>
+          <div id="rlt" style="margin-top:12px;display:flex;justify-content:center">${langToggleHTML()}</div>
+        </div>
+        <div id="reg-form">
+          <div class="register-section-title">${t("chapter")} & Meeting</div>
+          <div class="form-group">
+            <label class="form-label">${t("chapter")} <span class="required">*</span></label>
+            <select id="rc" class="form-control">
+              <option value="">${t("selectChapter")}</option>
+              ${chapters.map(c=>`<option value="${c.id}">${c.name}${c.city?" — "+c.city:""}</option>`).join("")}
+            </select>
+            <div class="form-error hidden" id="err-rc"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("expectedMeeting")}</label>
+            <select id="rm" class="form-control" disabled><option value="">— Select chapter first —</option></select>
+          </div>
+          <div class="register-section-title">Guest Details</div>
+          <div class="form-group">
+            <label class="form-label">${t("guestName")} <span class="required">*</span></label>
+            <input id="rn" class="form-control" placeholder="${t("guestName")}">
+            <div class="form-error hidden" id="err-rn"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("guestPhone")} <span class="required">*</span></label>
+            <input id="rp" class="form-control" type="tel" maxlength="15" placeholder="${t("guestPhone")}">
+            <div class="form-error hidden" id="err-rp"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("businessName")}</label>
+            <input id="rbn" class="form-control" placeholder="${t("businessName")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("businessType")}</label>
+            <select id="rbt" class="form-control">
+              <option value="">— Select —</option>
+              ${t("businessTypes").map(b=>`<option value="${b}">${b}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("feePaid")}</label>
+            <div class="radio-group">
+              <label class="radio-option" id="fy"><input type="radio" name="fp" value="yes"> ${t("feePaidYes")}</label>
+              <label class="radio-option selected" id="fn"><input type="radio" name="fp" value="no" checked> ${t("feePaidNo")}</label>
+            </div>
+          </div>
+          <div class="register-section-title">Your Details (Referring Member)</div>
+          <div class="form-group">
+            <label class="form-label">${t("referredByName")} <span class="required">*</span></label>
+            <input id="rrn" class="form-control" placeholder="${t("referredByName")}">
+            <div class="form-error hidden" id="err-rrn"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${t("referredByPhone")} <span class="required">*</span></label>
+            <input id="rrp" class="form-control" type="tel" maxlength="15" placeholder="${t("referredByPhone")}">
+            <div class="form-error hidden" id="err-rrp"></div>
+          </div>
+          <button class="btn btn-primary btn-full btn-lg" id="rsub" style="margin-top:8px">${t("submit")}</button>
+        </div>
+        <div id="reg-success" class="hidden" style="text-align:center;padding:32px 0">
+          <div style="font-size:3.5rem;margin-bottom:16px">🎉</div>
+          <h2 style="font-family:var(--font-display);color:var(--gold);margin-bottom:8px">${t("guestRegistered")}</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;font-size:.9rem">The chapter admin has been notified.</p>
+          <button class="btn btn-secondary btn-full" id="ranother" style="margin-bottom:10px">${t("submitAnother")}</button>
+          <button class="btn btn-ghost btn-full" id="rback">${t("backToHome")}</button>
+        </div>
+      </div>
+    </div>`;
+
+  bindLangToggle(document.getElementById("rlt"));
+
+  document.getElementById("rc").onchange = async e => {
+    const cid=e.target.value; const ms=document.getElementById("rm");
+    ms.innerHTML=`<option>— ${t("loading")} —</option>`;ms.disabled=true;
+    if(!cid){ms.innerHTML=`<option value="">— Select chapter first —</option>`;return;}
+    const meetings=await getUpcomingMtgs(cid);
+    ms.innerHTML=`<option value="notDecided">${t("notDecided")}</option>`;
+    meetings.forEach(m=>{const d=fmtDate(m.date);const o=document.createElement("option");o.value=m.id;o.textContent=d+(m.venue?" · "+m.venue:"");ms.appendChild(o);});
+    ms.disabled=false;
+  };
+
+  document.querySelectorAll('input[name="fp"]').forEach(r=>r.onchange=()=>{
+    document.getElementById("fy").classList.toggle("selected",document.querySelector('input[name="fp"][value="yes"]').checked);
+    document.getElementById("fn").classList.toggle("selected",document.querySelector('input[name="fp"][value="no"]').checked);
+  });
+
+  document.getElementById("rsub").onclick = async () => {
+    const ch=document.getElementById("rc").value;
+    const name=document.getElementById("rn").value.trim();
+    const phone=document.getElementById("rp").value.trim();
+    const refName=document.getElementById("rrn").value.trim();
+    const refPhone=document.getElementById("rrp").value.trim();
+    let valid=true;
+    const se=(id,msg)=>{const el=document.getElementById(id);el.textContent=msg;el.classList.remove("hidden");valid=false;};
+    document.querySelectorAll(".form-error").forEach(el=>el.classList.add("hidden"));
+    if(!ch) se("err-rc",t("required"));
+    if(!name) se("err-rn",t("required"));
+    if(!phone) se("err-rp",t("required"));
+    if(!refName) se("err-rrn",t("required"));
+    if(!refPhone) se("err-rrp",t("required"));
+    if(!valid) return;
+    const btn=document.getElementById("rsub");btn.disabled=true;btn.innerHTML=`<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0 auto"></div>`;
+    const mid=document.getElementById("rm").value;
+    try{
+      await registerGuest({chapterId:ch,name,phone,businessName:document.getElementById("rbn").value.trim(),businessType:document.getElementById("rbt").value,referredByName:refName,referredByPhone:refPhone,expectedMeetingId:mid==="notDecided"?null:mid||null,meetingDecided:!!mid&&mid!=="notDecided",feePaid:document.querySelector('input[name="fp"][value="yes"]').checked});
+      document.getElementById("reg-form").classList.add("hidden");
+      document.getElementById("reg-success").classList.remove("hidden");
+    }catch(e){showToast(t("error")+": "+e.message,"error");btn.disabled=false;btn.textContent=t("submit");}
+  };
+
+  document.getElementById("ranother").onclick=()=>{document.getElementById("reg-form").classList.remove("hidden");document.getElementById("reg-success").classList.add("hidden");["rn","rp","rbn","rrn","rrp"].forEach(id=>document.getElementById(id).value="");};
+  document.getElementById("rback").onclick=()=>{document.getElementById("root").innerHTML="";renderLogin();};
+};
+
+// ── APP SHELL ─────────────────────────────────────────────────
+const renderShell = () => {
+  const p=state.profile;
+  const role=p.role;
+  const ini=initials(p.name||"U");
+  const roleLabel={superAdmin:t("roleSuperAdmin"),chapterAdmin:t("roleChapterAdmin"),desk:t("roleDesk")}[role]||role;
+
+  const navItems = role==="superAdmin"
+    ? [{pg:"dashboard",lk:"dashboard",ic:`<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>`},
+       {pg:"chapters",lk:"chapters",ic:`<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`},
+       {pg:"users",lk:"users",ic:`<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`},
+       {pg:"guests",lk:"guests",ic:`<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`},
+       {pg:"meetings",lk:"meetings",ic:`<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`}]
+    : role==="chapterAdmin"
+    ? [{pg:"dashboard",lk:"dashboard",ic:`<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>`},
+       {pg:"guests",lk:"guests",ic:`<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`},
+       {pg:"meetings",lk:"meetings",ic:`<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`},
+       {pg:"attendance",lk:"attendance",ic:`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`}]
+    : [{pg:"attendance",lk:"attendance",ic:`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`}];
+
+  document.getElementById("root").innerHTML=`
+    <div id="app">
+      <aside id="sidebar">
+        <div class="sidebar-logo">
+          <div class="logo-mark">PA Guest Tracker</div>
+          <div class="logo-sub">Progress Alliance</div>
+          <div class="logo-ver">v${APP_VERSION}</div>
+        </div>
+        <nav class="sidebar-nav">
+          ${navItems.map(n=>`<div class="nav-item${state.page===n.pg?" active":""}" data-pg="${n.pg}">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${n.ic}</svg>
+            <span>${t(n.lk)}</span>
+          </div>`).join("")}
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="user-info">
+            <div class="user-avatar">${ini}</div>
+            <div><div class="user-name">${p.name||"User"}</div><div class="user-role">${roleLabel}</div></div>
+          </div>
+          <button class="btn btn-ghost btn-sm btn-full" id="wn-btn" style="margin-bottom:6px;justify-content:flex-start;color:var(--gold);border-color:var(--gold-border)">
+            ✨ What's New <span style="margin-left:auto;font-size:.65rem;background:var(--gold);color:var(--navy);padding:1px 6px;border-radius:10px;font-weight:700">v${APP_VERSION}</span>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-full" id="logout-btn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            ${t("logout")}
+          </button>
+        </div>
+      </aside>
+      <div id="sidebar-overlay"></div>
+      <div id="main">
+        <header id="header">
+          <div class="flex items-center gap-2">
+            <button class="hamburger-btn" id="hbtn">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <h1 class="header-title" id="htitle">PA Guest Tracker</h1>
+          </div>
+          <div class="header-actions" id="hlt">${langToggleHTML()}</div>
+        </header>
+        <div id="page-content"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      </div>
+    </div>`;
+
+  // Bind nav
+  document.querySelector(".sidebar-nav").onclick = e => {
+    const item=e.target.closest(".nav-item");if(!item)return;
+    state.page=item.dataset.pg;closeSidebar();renderPage();
+  };
+  document.getElementById("logout-btn").onclick=()=>signOut(auth);
+  document.getElementById("wn-btn").onclick=()=>showWhatsNew(true);
+  document.getElementById("hbtn").onclick=()=>toggleSidebar();
+  document.getElementById("sidebar-overlay").onclick=()=>closeSidebar();
+  bindLangToggle(document.getElementById("hlt"));
+  renderPage();
+  setTimeout(()=>showWhatsNew(),800);
+};
+
+const toggleSidebar=()=>{state.sidebarOpen=!state.sidebarOpen;document.getElementById("sidebar").classList.toggle("open",state.sidebarOpen);document.getElementById("sidebar-overlay").classList.toggle("visible",state.sidebarOpen);};
+const closeSidebar=()=>{state.sidebarOpen=false;document.getElementById("sidebar")?.classList.remove("open");document.getElementById("sidebar-overlay")?.classList.remove("visible");};
+
+// ── RENDER PAGE ───────────────────────────────────────────────
+const renderPage = async () => {
+  const content=document.getElementById("page-content");
+  content.innerHTML=`<div class="loading-spinner"><div class="spinner"></div></div>`;
+  // Update active nav
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.toggle("active",el.dataset.pg===state.page));
+  const titles={dashboard:t("dashboard"),guests:t("guests"),meetings:t("meetingsList"),attendance:t("attendancePage"),chapters:t("chaptersList"),users:t("usersList"),"guest-detail":t("guestDetails")};
+  const htitle=document.getElementById("htitle");if(htitle)htitle.textContent=titles[state.page]||"PA";
+  try{
+    switch(state.page){
+      case "dashboard": await renderDashboard(content); break;
+      case "guests": await renderGuests(content); break;
+      case "guest-detail": await renderGuestDetail(content); break;
+      case "meetings": await renderMeetings(content); break;
+      case "attendance": await renderAttendance(content); break;
+      case "chapters": await renderChapters(content); break;
+      case "users": await renderUsers(content); break;
+      default: await renderDashboard(content);
     }
-  </script>
+  }catch(e){content.innerHTML=`<div class="empty-state"><span class="empty-state-icon">⚠️</span><p>${e.message}</p></div>`;}
+};
+
+// ── CHAPTER HELPER ────────────────────────────────────────────
+const getChaptersForUser = async () => {
+  const {role,uid} = state.profile;
+  return role==="superAdmin" ? await getChapters() : await getChaptersByAdmin(uid);
+};
+
+const getOrSetChapterId = async chapters => {
+  if(!state.chapterId && chapters.length) state.chapterId=chapters[0].id;
+  return state.chapterId;
+};
+
+const chapterSwitcher = (chapters,cid) => chapters.length>1
+  ? `<select id="ch-sw" class="form-control" style="max-width:260px;margin-bottom:16px">${chapters.map(c=>`<option value="${c.id}"${c.id===cid?" selected":""}>${c.name}</option>`).join("")}</select>`
+  : "";
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+const renderDashboard = async el => {
+  const {role} = state.profile;
+  if(role==="superAdmin"){
+    const [chapters,allG]=await Promise.all([getChapters(),getAllGuests()]);
+    const s={new:0,attending:0,interested:0,converted:0,notInterested:0,ghosted:0};
+    allG.forEach(g=>{if(g.status==="New")s.new++;else if(g.status==="Attending")s.attending++;else if(g.status==="Interested")s.interested++;else if(g.status==="Converted")s.converted++;else if(g.status==="NotInterested")s.notInterested++;else if(g.status==="Ghosted")s.ghosted++;});
+    const conv=allG.length?Math.round((s.converted/allG.length)*100):0;
+    el.innerHTML=`<div class="fade-in">
+      <div class="page-header"><div><h1 class="page-title">${t("dashboard")}</h1><div class="page-subtitle">${t("allChapters")} · ${chapters.length} chapters</div></div></div>
+      <div class="stats-grid">
+        ${[
+          [allG.length,t("totalGuests"),"var(--gold)"],
+          [s.converted,t("converted"),"var(--status-converted)"],
+          [s.interested,t("interested"),"var(--status-interested)"],
+          [s.attending,t("attending"),"var(--status-attending)"],
+          [s.new,t("newGuests"),"var(--status-new)"],
+          [conv+"%",t("conversionRate"),"var(--gold)"],
+        ].map(([v,l,c])=>`<div class="stat-card" style="--accent-color:${c}"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("")}
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Chapter Performance</span></div>
+        ${chapters.map(ch=>{const cg=allG.filter(g=>g.chapterId===ch.id);const conv=cg.filter(g=>g.status==="Converted").length;return `
+          <div class="guest-item" style="cursor:default">
+            <div class="guest-avatar">${(ch.name[0]||"C").toUpperCase()}</div>
+            <div class="guest-info"><div class="guest-name">${ch.name}</div><div class="guest-meta">${ch.city||"—"} · ${cg.length} guests · ${conv} converted · ${cg.length?Math.round((conv/cg.length)*100):0}%</div></div>
+          </div>`}).join("")}
+      </div>
+    </div>`;
+  } else {
+    const chapters=await getChaptersForUser();
+    const cid=await getOrSetChapterId(chapters);
+    if(!cid){el.innerHTML=`<div class="empty-state"><span class="empty-state-icon">🏠</span><p>No chapter assigned. Contact your Super Admin.</p></div>`;return;}
+    const [guests,upcoming]=await Promise.all([getGuests(cid),getUpcomingMtgs(cid)]);
+    const next=upcoming[0];
+    const now=new Date();
+    const monthG=guests.filter(g=>{const d=g.createdAt?.toDate?g.createdAt.toDate():new Date(g.createdAt||0);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+    const converted=guests.filter(g=>g.status==="Converted").length;
+    const nextG=next?guests.filter(g=>g.expectedMeetingId===next.id):[];
+    el.innerHTML=`<div class="fade-in">
+      <div class="page-header">
+        <div><h1 class="page-title">${t("dashboard")}</h1>
+          ${chapterSwitcher(chapters,cid)}
+          ${chapters.length===1?`<div class="page-subtitle">${chapters[0].name}</div>`:""}
+        </div>
+        <button class="btn btn-primary" id="dash-add">+ ${t("addGuest")}</button>
+      </div>
+      <div class="stats-grid">
+        ${[[guests.length,t("totalGuests"),"var(--gold)"],[monthG.length,t("thisMonth"),"var(--info)"],[converted,t("converted"),"var(--status-converted)"],[guests.filter(g=>g.status==="Interested").length,t("interested"),"var(--status-interested)"],[guests.filter(g=>g.status==="Attending").length,t("attending"),"var(--status-attending)"],[guests.filter(g=>g.status==="New").length,t("newGuests"),"var(--status-new)"]].map(([v,l,c])=>`<div class="stat-card" style="--accent-color:${c}"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("")}
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">🗓 ${t("upcomingMeeting")}</span><button class="btn btn-ghost btn-sm" id="dash-mtg">${t("meetings")}</button></div>
+        ${next?`<div class="flex items-center gap-3">
+          <div class="meeting-date-badge"><span class="meeting-date-day">${fmtShort(next.date).day}</span><span class="meeting-date-month">${fmtShort(next.date).month}</span></div>
+          <div><div style="font-weight:600">${next.venue||"PA Meeting"}</div><div style="font-size:.8rem;color:var(--text-muted);margin-top:2px">${nextG.length} guest(s) expected · ${next.attendees?.length||0} confirmed</div></div>
+          <button class="btn btn-primary btn-sm" style="margin-left:auto" id="dash-att">${t("markAttendance")}</button>
+        </div>`:`<p class="text-muted">${t("noUpcomingMeeting")}</p>`}
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">👤 ${t("recentGuests")}</span><button class="btn btn-ghost btn-sm" id="dash-guests">${t("guests")}</button></div>
+        ${guests.slice(0,5).map(g=>`<div class="guest-item" data-gid="${g.id}">
+          <div class="guest-avatar">${(g.name[0]||"G").toUpperCase()}</div>
+          <div class="guest-info"><div class="guest-name">${g.name}</div><div class="guest-meta">${g.businessName||g.businessType||"—"} · ${g.referredByName||"—"}${g.feePaid?" · <span style='color:var(--status-converted)'>Fee ✓</span>":""}</div></div>
+          ${statusBadge(g.status)}
+        </div>`).join("")||`<p class="text-muted">${t("noData")}</p>`}
+      </div>
+    </div>`;
+
+    document.getElementById("dash-add")?.onclick=()=>{state.page="guests";renderPage();};
+    document.getElementById("dash-mtg")?.onclick=()=>{state.page="meetings";renderPage();};
+    document.getElementById("dash-att")?.onclick=()=>{state.page="attendance";renderPage();};
+    document.getElementById("dash-guests")?.onclick=()=>{state.page="guests";renderPage();};
+    el.querySelectorAll(".guest-item[data-gid]").forEach(item=>item.onclick=()=>{state.guestId=item.dataset.gid;state.page="guest-detail";renderPage();});
+    document.getElementById("ch-sw")?.addEventListener("change",e=>{state.chapterId=e.target.value;renderPage();});
+  }
+};
+
+// ── GUESTS ────────────────────────────────────────────────────
+let _guestFilter="all", _guestSearch="", _guestList=[];
+
+const renderGuests = async el => {
+  const chapters=await getChaptersForUser();
+  const cid=await getOrSetChapterId(chapters);
+  if(!cid){el.innerHTML=`<div class="empty-state"><p>No chapter assigned.</p></div>`;return;}
+  _guestList = state.profile.role==="superAdmin"&&cid ? await getGuests(cid) : await getGuests(cid);
+
+  const draw = () => {
+    let list=[..._guestList];
+    if(_guestFilter!=="all") list=list.filter(g=>g.status===_guestFilter);
+    if(_guestSearch) list=list.filter(g=>(g.name||"").toLowerCase().includes(_guestSearch)||(g.phone||"").includes(_guestSearch)||(g.businessName||"").toLowerCase().includes(_guestSearch)||(g.referredByName||"").toLowerCase().includes(_guestSearch));
+    el.innerHTML=`<div class="fade-in">
+      <div class="page-header">
+        <div><h1 class="page-title">${t("guests")}</h1><div class="page-subtitle">${list.length} ${t("guests").toLowerCase()}</div></div>
+        <button class="btn btn-primary" id="gadd">+ ${t("addGuest")}</button>
+      </div>
+      ${chapterSwitcher(chapters,cid)}
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="gsearch" class="form-control" placeholder="${t("search")}..." value="${_guestSearch}">
+        </div>
+        ${["all","New","Attending","Interested","Converted","NotInterested","Ghosted"].map(f=>`<span class="filter-chip${_guestFilter===f?" active":""}" data-f="${f}">${f==="all"?t("all"):t("status"+f)}</span>`).join("")}
+      </div>
+      <div id="glist">
+        ${list.length?list.map(g=>`<div class="guest-item" data-gid="${g.id}">
+          <div class="guest-avatar">${(g.name[0]||"G").toUpperCase()}</div>
+          <div class="guest-info"><div class="guest-name">${g.name}</div>
+          <div class="guest-meta">${g.businessName||g.businessType||"—"} · ${g.referredByName||"—"}${g.feePaid?" · <span style='color:var(--status-converted)'>Fee ✓</span>":""}</div></div>
+          ${statusBadge(g.status)}
+        </div>`).join(""):
+        `<div class="empty-state"><span class="empty-state-icon">👥</span><p>${t("noData")}</p></div>`}
+      </div>
+    </div>`;
+
+    el.querySelector("#gadd").onclick=()=>showAddGuestModal(cid);
+    el.querySelectorAll(".filter-chip").forEach(c=>c.onclick=()=>{_guestFilter=c.dataset.f;draw();});
+    el.querySelector("#gsearch").oninput=e=>{_guestSearch=e.target.value.toLowerCase();draw();};
+    el.querySelectorAll(".guest-item[data-gid]").forEach(item=>item.onclick=()=>{state.guestId=item.dataset.gid;state.page="guest-detail";renderPage();});
+    document.getElementById("ch-sw")?.addEventListener("change",async e=>{state.chapterId=e.target.value;_guestList=await getGuests(e.target.value);draw();});
+  };
+  draw();
+};
+
+const showAddGuestModal = async cid => {
+  const meetings=await getUpcomingMtgs(cid);
+  const o=modal(`+ ${t("addGuest")}`,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("guestName")} <span class="required">*</span></label><input id="an" class="form-control" placeholder="${t("guestName")}"></div>
+      <div class="form-group"><label class="form-label">${t("guestPhone")} <span class="required">*</span></label><input id="ap" class="form-control" type="tel" maxlength="15"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("businessName")}</label><input id="abn" class="form-control"></div>
+      <div class="form-group"><label class="form-label">${t("businessType")}</label><select id="abt" class="form-control"><option value="">— Select —</option>${t("businessTypes").map(b=>`<option value="${b}">${b}</option>`).join("")}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("referredByName")} <span class="required">*</span></label><input id="arn" class="form-control"></div>
+      <div class="form-group"><label class="form-label">${t("referredByPhone")} <span class="required">*</span></label><input id="arp" class="form-control" type="tel" maxlength="15"></div>
+    </div>
+    <div class="form-group"><label class="form-label">${t("expectedMeeting")}</label>
+      <select id="am" class="form-control"><option value="">${t("notDecided")}</option>${meetings.map(m=>{const d=fmtDate(m.date);return `<option value="${m.id}">${d}${m.venue?" · "+m.venue:""}</option>`;}).join("")}</select>
+    </div>
+    <div class="form-group"><label class="form-label">${t("feePaid")}</label>
+      <div class="radio-group">
+        <label class="radio-option" id="afy"><input type="radio" name="afp" value="yes"> ${t("feePaidYes")}</label>
+        <label class="radio-option selected" id="afn"><input type="radio" name="afp" value="no" checked> ${t("feePaidNo")}</label>
+      </div>
+    </div>
+    <div id="aerr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="ac">${t("cancel")}</button><button class="btn btn-primary" id="asv">${t("save")}</button>`);
+
+  o.querySelectorAll('input[name="afp"]').forEach(r=>r.onchange=()=>{o.querySelector("#afy").classList.toggle("selected",o.querySelector('input[name="afp"][value="yes"]').checked);o.querySelector("#afn").classList.toggle("selected",o.querySelector('input[name="afp"][value="no"]').checked);});
+  o.querySelector("#ac").onclick=()=>o.remove();
+  o.querySelector("#asv").onclick=async()=>{
+    const name=o.querySelector("#an").value.trim(),phone=o.querySelector("#ap").value.trim(),refName=o.querySelector("#arn").value.trim(),refPhone=o.querySelector("#arp").value.trim();
+    const err=o.querySelector("#aerr");
+    if(!name||!phone||!refName||!refPhone){err.textContent=t("required");err.classList.remove("hidden");return;}
+    const btn=o.querySelector("#asv");btn.disabled=true;
+    try{
+      await registerGuest({chapterId:cid,name,phone,businessName:o.querySelector("#abn").value.trim(),businessType:o.querySelector("#abt").value,referredByName:refName,referredByPhone:refPhone,expectedMeetingId:o.querySelector("#am").value||null,meetingDecided:!!o.querySelector("#am").value,feePaid:o.querySelector('input[name="afp"][value="yes"]').checked});
+      showToast(t("guestRegistered"),"success");o.remove();
+      _guestList=await getGuests(cid);renderPage();
+    }catch(e){err.textContent=t("error")+": "+e.message;err.classList.remove("hidden");btn.disabled=false;}
+  };
+};
+
+// ── GUEST DETAIL ──────────────────────────────────────────────
+const renderGuestDetail = async el => {
+  if(!state.guestId){state.page="guests";renderPage();return;}
+  const [guest,followups]=await Promise.all([getGuest(state.guestId),getFollowups(state.guestId)]);
+  if(!guest){el.innerHTML=`<div class="empty-state"><p>Guest not found.</p></div>`;return;}
+  const meetings=await getMeetings(guest.chapterId);
+  const mMap={};meetings.forEach(m=>{mMap[m.id]=fmtDate(m.date)+(m.venue?" · "+m.venue:"");});
+  const canEdit=["superAdmin","chapterAdmin"].includes(state.profile.role);
+
+  const drawDetail=()=>{
+    el.innerHTML=`<div class="fade-in">
+      <div class="page-header">
+        <button class="btn btn-ghost btn-sm" id="gbk">← ${t("back")}</button>
+        ${canEdit?`<div class="flex gap-2"><button class="btn btn-ghost btn-sm" id="gedit">${t("edit")}</button><button class="btn btn-danger btn-sm" id="gdel">${t("delete")}</button></div>`:""}
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="flex items-center gap-3" style="margin-bottom:16px">
+          <div style="width:52px;height:52px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:1.4rem;color:var(--gold);font-weight:700;flex-shrink:0">${(guest.name[0]||"G").toUpperCase()}</div>
+          <div style="flex:1"><h2 style="font-family:var(--font-display);font-size:1.3rem">${guest.name}</h2><div style="font-size:.8rem;color:var(--text-muted)">${guest.phone}</div></div>
+          ${statusBadge(guest.status)}
+        </div>
+        <div class="grid-2" style="gap:16px">
+          <div><div class="text-xs text-muted mb-1">${t("businessName")}</div><div style="font-size:.875rem">${guest.businessName||"—"}</div></div>
+          <div><div class="text-xs text-muted mb-1">${t("businessType")}</div><div style="font-size:.875rem">${guest.businessType||"—"}</div></div>
+          <div><div class="text-xs text-muted mb-1">${t("referredByName")}</div><div style="font-size:.875rem">${guest.referredByName||"—"}</div></div>
+          <div><div class="text-xs text-muted mb-1">${t("referredByPhone")}</div><div style="font-size:.875rem">${guest.referredByPhone||"—"}</div></div>
+          <div><div class="text-xs text-muted mb-1">${t("feePaid")}</div><div style="font-size:.875rem;color:${guest.feePaid?"var(--status-converted)":"var(--text-muted)"}">${guest.feePaid?"✓ "+t("yes"):t("no")}</div></div>
+          <div><div class="text-xs text-muted mb-1">Registered</div><div style="font-size:.875rem">${fmtDate(guest.createdAt)}</div></div>
+        </div>
+        ${canEdit?`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--navy-border)">
+          <div class="text-xs text-muted" style="margin-bottom:8px">${t("updateStatus")}</div>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            ${["New","Attending","Interested","Converted","NotInterested","Ghosted"].map(s=>`<span class="filter-chip${guest.status===s?" active":""} su-btn" data-s="${s}">${t("status"+s)}</span>`).join("")}
+          </div>
+        </div>`:""}
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">📅 ${t("meetingsAttended")}</span><span style="font-size:.8rem;color:var(--text-muted)">${guest.meetingsAttended?.length||0} total</span></div>
+        ${guest.meetingsAttended?.length?guest.meetingsAttended.map(mid=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(30,54,102,.4);font-size:.875rem">📅 ${mMap[mid]||mid}</div>`).join(""):`<p class="text-muted text-sm">${t("noMeetingsAttended")}</p>`}
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">💬 ${t("followUpLog")}</span>${canEdit?`<button class="btn btn-primary btn-sm" id="addf">+ ${t("addFollowUp")}</button>`:""}</div>
+        <div id="fu-area">${renderFollowupsHTML(followups)}</div>
+      </div>
+    </div>`;
+
+    el.querySelector("#gbk").onclick=()=>{state.page="guests";renderPage();};
+    el.querySelector("#gedit")?.onclick=()=>showEditGuestModal(guest);
+    el.querySelector("#gdel")?.onclick=async()=>{if(!confirm(t("confirmDelete")))return;await deleteGuest(state.guestId);showToast("Deleted","success");state.page="guests";renderPage();};
+    el.querySelectorAll(".su-btn").forEach(btn=>btn.onclick=async()=>{await updateGuest(state.guestId,{status:btn.dataset.s});showToast(t("success"),"success");const g=await getGuest(state.guestId);Object.assign(guest,g);drawDetail();});
+    el.querySelector("#addf")?.onclick=()=>showFollowupModal(state.guestId,guest.chapterId,async()=>{const fu=await getFollowups(state.guestId);document.getElementById("fu-area").innerHTML=renderFollowupsHTML(fu);});
+  };
+  drawDetail();
+};
+
+const renderFollowupsHTML = fus => fus.length?`<div class="followup-timeline">${fus.map(f=>`<div class="followup-item"><div class="followup-date">${fmtDate(f.createdAt)}</div><div class="followup-notes">${f.notes||"—"}</div><div class="followup-by">${t("followUpBy")}: ${f.byWhom||"—"}${f.outcome?" · "+f.outcome:""}</div></div>`).join("")}</div>`:`<p class="text-muted text-sm">${t("noFollowUps")}</p>`;
+
+const showEditGuestModal = g => {
+  const o=modal(t("editGuest"),`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("guestName")} <span class="required">*</span></label><input id="en" class="form-control" value="${g.name||""}"></div>
+      <div class="form-group"><label class="form-label">${t("guestPhone")} <span class="required">*</span></label><input id="ep" class="form-control" value="${g.phone||""}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("businessName")}</label><input id="ebn" class="form-control" value="${g.businessName||""}"></div>
+      <div class="form-group"><label class="form-label">${t("businessType")}</label><select id="ebt" class="form-control"><option value="">— Select —</option>${t("businessTypes").map(b=>`<option value="${b}"${g.businessType===b?" selected":""}>${b}</option>`).join("")}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("referredByName")}</label><input id="ern" class="form-control" value="${g.referredByName||""}"></div>
+      <div class="form-group"><label class="form-label">${t("referredByPhone")}</label><input id="erp" class="form-control" value="${g.referredByPhone||""}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">${t("feePaid")}</label>
+      <div class="radio-group">
+        <label class="radio-option${g.feePaid?" selected":""}" id="efy"><input type="radio" name="efp" value="yes"${g.feePaid?" checked":""}> ${t("feePaidYes")}</label>
+        <label class="radio-option${!g.feePaid?" selected":""}" id="efn"><input type="radio" name="efp" value="no"${!g.feePaid?" checked":""}> ${t("feePaidNo")}</label>
+      </div>
+    </div>
+    <div id="eerr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="ec">${t("cancel")}</button><button class="btn btn-primary" id="esv">${t("save")}</button>`);
+
+  o.querySelectorAll('input[name="efp"]').forEach(r=>r.onchange=()=>{o.querySelector("#efy").classList.toggle("selected",o.querySelector('input[name="efp"][value="yes"]').checked);o.querySelector("#efn").classList.toggle("selected",o.querySelector('input[name="efp"][value="no"]').checked);});
+  o.querySelector("#ec").onclick=()=>o.remove();
+  o.querySelector("#esv").onclick=async()=>{
+    const name=o.querySelector("#en").value.trim(),phone=o.querySelector("#ep").value.trim();
+    if(!name||!phone)return;
+    try{await updateGuest(g.id,{name,phone,businessName:o.querySelector("#ebn").value.trim(),businessType:o.querySelector("#ebt").value,referredByName:o.querySelector("#ern").value.trim(),referredByPhone:o.querySelector("#erp").value.trim(),feePaid:o.querySelector('input[name="efp"][value="yes"]').checked});showToast(t("success"),"success");o.remove();renderPage();}
+    catch(e){o.querySelector("#eerr").textContent=e.message;o.querySelector("#eerr").classList.remove("hidden");}
+  };
+};
+
+const showFollowupModal = (guestId,chapterId,onSaved) => {
+  const today=new Date().toISOString().split("T")[0];
+  const o=modal(t("addFollowUp"),`
+    <div class="form-group"><label class="form-label">${t("followUpBy")} <span class="required">*</span></label><input id="fb" class="form-control"></div>
+    <div class="form-group"><label class="form-label">${t("followUpNotes")}</label><textarea id="fn" class="form-control"></textarea></div>
+    <div class="form-group"><label class="form-label">${t("followUpOutcome")}</label><select id="fo" class="form-control"><option value="">— Select —</option>${t("outcomes").map(o=>`<option value="${o}">${o}</option>`).join("")}</select></div>`,
+    `<button class="btn btn-ghost" id="fc">${t("cancel")}</button><button class="btn btn-primary" id="fsv">${t("save")}</button>`);
+  o.querySelector("#fc").onclick=()=>o.remove();
+  o.querySelector("#fsv").onclick=async()=>{
+    const byWhom=o.querySelector("#fb").value.trim();if(!byWhom)return;
+    try{await addFollowup({guestId,chapterId,date:today,byWhom,notes:o.querySelector("#fn").value.trim(),outcome:o.querySelector("#fo").value});showToast(t("success"),"success");o.remove();if(onSaved)onSaved();}
+    catch(e){showToast(e.message,"error");}
+  };
+};
+
+// ── MEETINGS ─────────────────────────────────────────────────
+const renderMeetings = async el => {
+  const chapters=await getChaptersForUser();
+  const cid=await getOrSetChapterId(chapters);
+  if(!cid){el.innerHTML=`<div class="empty-state"><p>No chapter assigned.</p></div>`;return;}
+  const meetings=await getMeetings(cid);
+  const now=new Date();
+  const upcoming=meetings.filter(m=>{const d=m.date?.toDate?m.date.toDate():new Date(m.date);return d>=now;});
+  const past=meetings.filter(m=>{const d=m.date?.toDate?m.date.toDate():new Date(m.date);return d<now;});
+
+  el.innerHTML=`<div class="fade-in">
+    <div class="page-header">
+      <div><h1 class="page-title">${t("meetingsList")}</h1><div class="page-subtitle">${meetings.length} total · ${upcoming.length} upcoming</div></div>
+      <button class="btn btn-primary" id="madd">+ ${t("addMeeting")}</button>
+    </div>
+    ${chapterSwitcher(chapters,cid)}
+    ${upcoming.length?`<div style="margin-bottom:8px;font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Upcoming</div>${upcoming.map(m=>meetingCardHTML(m)).join("")}`:""}
+    ${past.length?`<div style="margin:16px 0 8px;font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Past</div>${past.map(m=>meetingCardHTML(m,true)).join("")}`:""}
+    ${!meetings.length?`<div class="empty-state"><span class="empty-state-icon">📅</span><p>${t("noMeetings")}</p></div>`:""}
+  </div>`;
+
+  el.querySelector("#madd").onclick=()=>showMeetingModal(null,cid);
+  el.querySelectorAll(".meeting-card").forEach(c=>c.onclick=async()=>{
+    const m=meetings.find(m=>m.id===c.dataset.mid);if(m)await showMeetingDetail(m,cid);
+  });
+  document.getElementById("ch-sw")?.addEventListener("change",async e=>{state.chapterId=e.target.value;renderPage();});
+};
+
+const meetingCardHTML=(m,past=false)=>{const {day,month}=fmtShort(m.date);const d=m.date?.toDate?m.date.toDate():new Date(m.date);return `<div class="meeting-card" data-mid="${m.id}" style="${past?"opacity:.65":""}"><div class="flex items-center gap-3" style="flex:1"><div class="meeting-date-badge"><span class="meeting-date-day">${day}</span><span class="meeting-date-month">${month}</span></div><div><div style="font-weight:600;font-size:.9rem">${m.venue||"PA Meeting"}</div><div style="font-size:.75rem;color:var(--text-muted);margin-top:2px">${d.toLocaleDateString("en-IN",{weekday:"long"})} · ${m.attendees?.length||0} attended</div>${m.notes?`<div style="font-size:.75rem;color:var(--text-muted);margin-top:2px">${m.notes}</div>`:""}</div></div><svg width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>`;};
+
+const showMeetingDetail = async (m,cid) => {
+  const guests=await getGuests(cid);
+  const gMap={};guests.forEach(g=>gMap[g.id]=g);
+  const attended=(m.attendees||[]).map(id=>gMap[id]).filter(Boolean);
+  const expected=guests.filter(g=>g.expectedMeetingId===m.id);
+  const d=m.date?.toDate?m.date.toDate():new Date(m.date);
+  const o=modal(d.toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}),`
+    <div style="margin-bottom:16px"><div class="text-xs text-muted mb-1">Venue</div><div style="font-size:.9rem">${m.venue||"—"}</div></div>
+    ${m.notes?`<div style="margin-bottom:16px"><div class="text-xs text-muted mb-1">Notes</div><div style="font-size:.9rem">${m.notes}</div></div>`:""}
+    <div style="margin-bottom:16px"><div class="text-xs text-muted mb-1">Expected (${expected.length})</div>${expected.length?expected.map(g=>`<div style="font-size:.875rem;padding:6px 0;border-bottom:1px solid rgba(30,54,102,.4)">${g.name}${g.feePaid?" · <span style='color:var(--status-converted)'>Fee ✓</span>":""}</div>`).join(""):`<p class="text-muted text-sm">None</p>`}</div>
+    <div><div class="text-xs text-muted mb-1">Attended (${attended.length})</div>${attended.length?attended.map(g=>`<div style="font-size:.875rem;padding:6px 0;border-bottom:1px solid rgba(30,54,102,.4)">${g.name} · <span style="color:var(--status-converted)">✓</span></div>`).join(""):`<p class="text-muted text-sm">None marked</p>`}</div>`,
+    `<button class="btn btn-ghost" id="me-edit">${t("edit")}</button><button class="btn btn-primary" id="me-att">${t("markAttendance")}</button>`);
+  o.querySelector("#me-edit").onclick=()=>{o.remove();showMeetingModal(m,cid);};
+  o.querySelector("#me-att").onclick=()=>{o.remove();state.page="attendance";renderPage();};
+};
+
+const showMeetingModal = (existing,cid) => {
+  const dateVal=existing?.date?(existing.date?.toDate?existing.date.toDate():new Date(existing.date)).toISOString().split("T")[0]:"";
+  const o=modal(existing?t("edit"):t("addMeeting"),`
+    <div class="form-group"><label class="form-label">${t("meetingDate")} <span class="required">*</span></label><input type="date" id="md" class="form-control" value="${dateVal}"></div>
+    <div class="form-group"><label class="form-label">${t("meetingVenue")}</label><input id="mv" class="form-control" value="${existing?.venue||""}"></div>
+    <div class="form-group"><label class="form-label">${t("meetingNotes")}</label><textarea id="mn" class="form-control">${existing?.notes||""}</textarea></div>
+    <div id="merr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="mcan">${t("cancel")}</button><button class="btn btn-primary" id="msv">${t("save")}</button>`);
+  o.querySelector("#mcan").onclick=()=>o.remove();
+  o.querySelector("#msv").onclick=async()=>{
+    const d=o.querySelector("#md").value;if(!d){o.querySelector("#merr").textContent=t("required");o.querySelector("#merr").classList.remove("hidden");return;}
+    const btn=o.querySelector("#msv");btn.disabled=true;
+    try{
+      const data={chapterId:cid,date:new Date(d),venue:o.querySelector("#mv").value.trim(),notes:o.querySelector("#mn").value.trim()};
+      if(existing)await updateMeeting(existing.id,data);else await createMeeting(data);
+      showToast(t("success"),"success");o.remove();renderPage();
+    }catch(e){o.querySelector("#merr").textContent=e.message;o.querySelector("#merr").classList.remove("hidden");btn.disabled=false;}
+  };
+};
+
+// ── ATTENDANCE ────────────────────────────────────────────────
+const renderAttendance = async el => {
+  const chapters=await getChaptersForUser();
+  const cid=await getOrSetChapterId(chapters);
+  if(!cid){el.innerHTML=`<div class="empty-state"><p>No chapter assigned.</p></div>`;return;}
+  const [meetings,guests]=await Promise.all([getMeetings(cid),getGuests(cid)]);
+  const now=new Date();
+  const upcoming=meetings.filter(m=>{const d=m.date?.toDate?m.date.toDate():new Date(m.date);return d>=now;});
+  let selMid=state.selMeeting||(upcoming[0]?.id||meetings[0]?.id||null);
+  state.selMeeting=selMid;
+  let selMeeting=selMid?meetings.find(m=>m.id===selMid):null;
+
+  const draw = () => {
+    const gForMeeting=guests.filter(g=>g.expectedMeetingId===selMid||(selMeeting?.attendees||[]).includes(g.id)||["Attending","Interested","New"].includes(g.status));
+    el.innerHTML=`<div class="fade-in">
+      <div class="page-header">
+        <div><h1 class="page-title">${t("attendancePage")}</h1><div class="page-subtitle">${selMeeting?fmtDate(selMeeting.date)+(selMeeting.venue?" · "+selMeeting.venue:""):"Select a meeting"}</div></div>
+        <div id="save-ind" class="hidden" style="font-size:.8rem;color:var(--status-converted)">✓ ${t("attendanceSaved")}</div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        ${chapterSwitcher(chapters,cid)}
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">${t("selectMeeting")}</label>
+          <select id="msel" class="form-control">
+            ${meetings.map(m=>`<option value="${m.id}"${m.id===selMid?" selected":""}>${fmtDate(m.date)}${m.venue?" · "+m.venue:""}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">${t("guests")}</span><span style="font-size:.8rem;color:var(--text-muted)">${(selMeeting?.attendees||[]).length} / ${gForMeeting.length} present</span></div>
+        ${!selMeeting||!gForMeeting.length?`<div class="empty-state" style="padding:24px"><p>${t("noGuestsForMeeting")}</p></div>`:
+        gForMeeting.map(g=>{const present=(selMeeting?.attendees||[]).includes(g.id);return `<div class="attendance-item${present?" present":""}" id="att-${g.id}">
+          <div><div style="font-weight:600;font-size:.875rem">${g.name}</div><div style="font-size:.75rem;color:var(--text-muted)">${g.businessName||g.businessType||"—"} · ${g.referredByName||"—"}${g.feePaid?" · <span style='color:var(--status-converted)'>Fee ✓</span>":""}</div></div>
+          <label class="toggle-switch"><input type="checkbox" class="att-tog" data-gid="${g.id}"${present?" checked":""}><span class="toggle-track"></span></label>
+        </div>`;}).join("")}
+      </div>
+    </div>`;
+
+    document.getElementById("msel").onchange=async e=>{selMid=e.target.value;state.selMeeting=selMid;selMeeting=meetings.find(m=>m.id===selMid)||null;draw();};
+    document.getElementById("ch-sw")?.addEventListener("change",async e=>{state.chapterId=e.target.value;renderPage();});
+    el.querySelectorAll(".att-tog").forEach(tog=>tog.onchange=async e=>{
+      const gid=e.target.dataset.gid,present=e.target.checked;
+      try{
+        await markAttendance(selMid,gid,present);
+        selMeeting=await getMeeting(selMid);
+        document.getElementById(`att-${gid}`).classList.toggle("present",present);
+        const ind=document.getElementById("save-ind");ind.classList.remove("hidden");setTimeout(()=>ind.classList.add("hidden"),2000);
+      }catch(err){showToast(err.message,"error");e.target.checked=!present;}
+    });
+  };
+  draw();
+};
+
+// ── CHAPTERS ──────────────────────────────────────────────────
+const renderChapters = async el => {
+  const [chapters,users]=await Promise.all([getChapters(),getUsers()]);
+  const adminUsers=users.filter(u=>u.role==="chapterAdmin");
+
+  el.innerHTML=`<div class="fade-in">
+    <div class="page-header">
+      <div><h1 class="page-title">${t("chaptersList")}</h1><div class="page-subtitle">${chapters.length} chapters</div></div>
+      <button class="btn btn-primary" id="chadd">+ ${t("addChapter")}</button>
+    </div>
+    ${chapters.length?chapters.map(ch=>{
+      const admins=adminUsers.filter(u=>(u.chapterIds||[]).includes(ch.id));
+      return `<div class="card" style="margin-bottom:10px">
+        <div class="flex items-center justify-between">
+          <div><div style="font-family:var(--font-display);font-size:1rem;font-weight:600">${ch.name}</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${ch.city||"—"} · ${admins.length?admins.map(u=>u.name).join(", "):"No admins"}</div></div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm ch-edit" data-id="${ch.id}">${t("edit")}</button>
+            <button class="btn btn-danger btn-sm ch-del" data-id="${ch.id}">${t("delete")}</button>
+          </div>
+        </div>
+      </div>`;}).join(""):
+    `<div class="empty-state"><span class="empty-state-icon">🏠</span><p>${t("noChapters")}</p></div>`}
+  </div>`;
+
+  el.querySelector("#chadd").onclick=()=>showChapterModal(null,adminUsers,chapters,el);
+  el.querySelectorAll(".ch-edit").forEach(btn=>btn.onclick=()=>{const ch=chapters.find(c=>c.id===btn.dataset.id);if(ch)showChapterModal(ch,adminUsers,chapters,el);});
+  el.querySelectorAll(".ch-del").forEach(btn=>btn.onclick=async()=>{if(!confirm(t("confirmDelete")))return;await deleteChapter(btn.dataset.id);showToast(t("success"),"success");renderPage();});
+};
+
+const showChapterModal=(existing,adminUsers,chapters,el)=>{
+  const assigned=existing?adminUsers.filter(u=>(u.chapterIds||[]).includes(existing.id)).map(u=>u.id):[];
+  const o=modal(existing?t("edit"):t("addChapter"),`
+    <div class="form-group"><label class="form-label">${t("chapterName")} <span class="required">*</span></label><input id="chn" class="form-control" value="${existing?.name||""}"></div>
+    <div class="form-group"><label class="form-label">${t("chapterCity")}</label><input id="chc" class="form-control" value="${existing?.city||""}"></div>
+    <div class="form-group"><label class="form-label">${t("chapterAdmins")}</label>
+      <div style="max-height:160px;overflow-y:auto;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px">
+        ${adminUsers.length?adminUsers.map(u=>`<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:4px"><input type="checkbox" class="ch-adm" value="${u.id}"${assigned.includes(u.id)?" checked":""}><span style="font-size:.875rem">${u.name} <span style="color:var(--text-muted);font-size:.75rem">${u.email}</span></span></label>`).join(""):`<p class="text-muted text-sm">No chapter admins found.</p>`}
+      </div>
+    </div>
+    <div id="cherr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="chcan">${t("cancel")}</button><button class="btn btn-primary" id="chsv">${t("save")}</button>`);
+  o.querySelector("#chcan").onclick=()=>o.remove();
+  o.querySelector("#chsv").onclick=async()=>{
+    const name=o.querySelector("#chn").value.trim();
+    if(!name){o.querySelector("#cherr").textContent=t("required");o.querySelector("#cherr").classList.remove("hidden");return;}
+    const selAdmins=[...o.querySelectorAll(".ch-adm:checked")].map(c=>c.value);
+    try{
+      let chId;
+      if(existing){await updateChapter(existing.id,{name,city:o.querySelector("#chc").value.trim(),adminUids:selAdmins});chId=existing.id;}
+      else{const ref=await createChapter({name,city:o.querySelector("#chc").value.trim(),adminUids:selAdmins});chId=ref.id;}
+      // Update admin chapterIds
+      const allU=await getUsers();
+      for(const u of allU.filter(u=>u.role==="chapterAdmin")){
+        const cur=u.chapterIds||[];
+        const upd=selAdmins.includes(u.id)?[...new Set([...cur,chId])]:cur.filter(id=>id!==chId);
+        if(JSON.stringify(upd)!==JSON.stringify(cur)) await updateUserProf(u.id,{chapterIds:upd});
+      }
+      showToast(t("success"),"success");o.remove();renderPage();
+    }catch(e){o.querySelector("#cherr").textContent=e.message;o.querySelector("#cherr").classList.remove("hidden");}
+  };
+};
+
+// ── USERS ─────────────────────────────────────────────────────
+const renderUsers = async el => {
+  const [users,chapters]=await Promise.all([getUsers(),getChapters()]);
+  const roleColors={superAdmin:"var(--gold)",chapterAdmin:"var(--status-interested)",desk:"var(--status-attending)"};
+
+  el.innerHTML=`<div class="fade-in">
+    <div class="page-header">
+      <div><h1 class="page-title">${t("usersList")}</h1><div class="page-subtitle">${users.length} users</div></div>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" id="uref">↻ Refresh</button>
+        <button class="btn btn-primary" id="uadd">+ ${t("addUser")}</button>
+      </div>
+    </div>
+    ${users.length?users.map(u=>{
+      const roleLabel={superAdmin:t("roleSuperAdmin"),chapterAdmin:t("roleChapterAdmin"),desk:t("roleDesk")}[u.role]||u.role;
+      const uch=(u.chapterIds||[]).map(id=>chapters.find(c=>c.id===id)?.name).filter(Boolean).join(", ");
+      return `<div class="card" style="margin-bottom:10px">
+        <div class="flex items-center gap-3">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--gold-dim);border:1.5px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:.85rem;flex-shrink:0">${initials(u.name||"U")}</div>
+          <div style="flex:1">
+            <div style="font-weight:600">${u.name||"—"}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">${u.email||"—"}</div>
+            <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(0,0,0,.2);color:${roleColors[u.role]||"var(--text-muted)"}">${roleLabel}</span>
+              ${uch?`<span style="font-size:.72rem;color:var(--text-muted)">${uch}</span>`:""}
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm u-edit" data-id="${u.id}">${t("edit")}</button>
+            <button class="btn btn-danger btn-sm u-del" data-id="${u.id}" data-name="${u.name||u.email}">${t("delete")}</button>
+          </div>
+        </div>
+      </div>`;}).join(""):
+    `<div class="empty-state"><span class="empty-state-icon">👤</span><p>${t("noUsers")}</p></div>`}
+  </div>`;
+
+  el.querySelector("#uref").onclick=()=>renderPage();
+  el.querySelector("#uadd").onclick=()=>showCreateUserModal(chapters,el);
+  el.querySelectorAll(".u-edit").forEach(btn=>btn.onclick=()=>{const u=users.find(u=>u.id===btn.dataset.id);if(u)showEditUserModal(u,chapters,el);});
+  el.querySelectorAll(".u-del").forEach(btn=>btn.onclick=()=>showDeleteUserModal(btn.dataset.id,btn.dataset.name,el));
+};
+
+const showCreateUserModal=(chapters,el)=>{
+  const o=modal(`+ ${t("addUser")}`,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("userName")} <span class="required">*</span></label><input id="un" class="form-control" placeholder="Full name" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">${t("userRole")} <span class="required">*</span></label>
+        <select id="ur" class="form-control"><option value="chapterAdmin">${t("roleChapterAdmin")}</option><option value="desk">${t("roleDesk")}</option><option value="superAdmin">${t("roleSuperAdmin")}</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">${t("userEmail")} <span class="required">*</span></label><input id="ue" class="form-control" type="email" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Password <span class="required">*</span></label>
+      <div style="position:relative"><input id="upw" class="form-control" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:52px">
+      <button id="tpw" type="button" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.75rem;font-weight:600">SHOW</button></div>
+    </div>
+    <div class="form-group" id="uc-cg">
+      <label class="form-label">${t("userChapters")}</label>
+      <div style="max-height:180px;overflow-y:auto;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px">
+        ${chapters.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:4px"><input type="checkbox" class="uc-ch" value="${c.id}"><span style="font-size:.875rem">${c.name}${c.city?" — "+c.city:""}</span></label>`).join("")}
+      </div>
+    </div>
+    <div id="uerr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="ucan">${t("cancel")}</button><button class="btn btn-primary" id="usv"><span id="usvl">Create User</span><div id="usp" class="spinner hidden" style="width:16px;height:16px;border-width:2px;margin-left:6px"></div></button>`);
+
+  o.querySelector("#ur").onchange=e=>{o.querySelector("#uc-cg").style.display=e.target.value==="superAdmin"?"none":"block";};
+  o.querySelector("#tpw").onclick=()=>{const pw=o.querySelector("#upw"),btn=o.querySelector("#tpw");pw.type=pw.type==="password"?"text":"password";btn.textContent=pw.type==="password"?"SHOW":"HIDE";};
+  o.querySelector("#ucan").onclick=()=>o.remove();
+  o.querySelector("#usv").onclick=async()=>{
+    const name=o.querySelector("#un").value.trim(),email=o.querySelector("#ue").value.trim(),pw=o.querySelector("#upw").value,role=o.querySelector("#ur").value;
+    const cids=[...o.querySelectorAll(".uc-ch:checked")].map(c=>c.value);
+    const err=o.querySelector("#uerr");err.classList.add("hidden");
+    if(!name){err.textContent="Name is required.";err.classList.remove("hidden");return;}
+    if(!email||!email.includes("@")){err.textContent="Valid email is required.";err.classList.remove("hidden");return;}
+    if(!pw||pw.length<6){err.textContent="Password must be at least 6 characters.";err.classList.remove("hidden");return;}
+    const btn=o.querySelector("#usv");o.querySelector("#usvl").textContent="Creating...";o.querySelector("#usp").classList.remove("hidden");btn.disabled=true;
+    try{
+      const sa=getSecondaryAuth();
+      const {user:nu}=await createUserWithEmailAndPassword(sa,email,pw);
+      await updateProfile(nu,{displayName:name});
+      await createUserProf(nu.uid,{name,email,role,chapterIds:role==="superAdmin"?[]:cids});
+      await sa.signOut();
+      showToast("User created!","success");o.remove();renderPage();
+    }catch(e){
+      let msg=e.message||"Failed.";
+      if(e.code==="auth/email-already-in-use")msg="Email already registered.";
+      if(e.code==="auth/weak-password")msg="Password too weak.";
+      err.textContent=msg;err.classList.remove("hidden");btn.disabled=false;o.querySelector("#usvl").textContent="Create User";o.querySelector("#usp").classList.add("hidden");
+    }
+  };
+};
+
+const showEditUserModal=(u,chapters,el)=>{
+  const o=modal(`${t("edit")}: ${u.name||u.email}`,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">${t("userName")}</label><input id="eun" class="form-control" value="${u.name||""}"></div>
+      <div class="form-group"><label class="form-label">${t("userRole")}</label>
+        <select id="eur" class="form-control">
+          <option value="superAdmin"${u.role==="superAdmin"?" selected":""}>${t("roleSuperAdmin")}</option>
+          <option value="chapterAdmin"${u.role==="chapterAdmin"?" selected":""}>${t("roleChapterAdmin")}</option>
+          <option value="desk"${u.role==="desk"?" selected":""}>${t("roleDesk")}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="eu-cg" ${u.role==="superAdmin"?"style='display:none'":""}>
+      <label class="form-label">${t("userChapters")}</label>
+      <div style="max-height:200px;overflow-y:auto;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px">
+        ${chapters.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:4px"><input type="checkbox" class="eu-ch" value="${c.id}"${(u.chapterIds||[]).includes(c.id)?" checked":""}><span style="font-size:.875rem">${c.name}${c.city?" — "+c.city:""}</span></label>`).join("")}
+      </div>
+    </div>
+    <div id="euerr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="eucan">${t("cancel")}</button><button class="btn btn-primary" id="eusv">${t("save")}</button>`);
+
+  o.querySelector("#eur").onchange=e=>{o.querySelector("#eu-cg").style.display=e.target.value==="superAdmin"?"none":"block";};
+  o.querySelector("#eucan").onclick=()=>o.remove();
+  o.querySelector("#eusv").onclick=async()=>{
+    const role=o.querySelector("#eur").value;
+    try{await updateUserProf(u.id,{name:o.querySelector("#eun").value.trim(),role,chapterIds:role==="superAdmin"?[]:[...o.querySelectorAll(".eu-ch:checked")].map(c=>c.value)});showToast(t("success"),"success");o.remove();renderPage();}
+    catch(e){o.querySelector("#euerr").textContent=e.message;o.querySelector("#euerr").classList.remove("hidden");}
+  };
+};
+
+const showDeleteUserModal=(uid,name,el)=>{
+  const o=modal(`<span style="color:var(--danger)">Delete User</span>`,`<p style="color:var(--text-secondary);margin-bottom:8px">Delete <strong>${name}</strong>?</p><p style="color:var(--text-muted);font-size:.8rem">This removes them from the app.</p><div id="duerr" class="form-error hidden" style="margin-bottom:8px"></div>`,
+    `<button class="btn btn-ghost" id="ducan">${t("cancel")}</button><button class="btn btn-danger" id="ducon">Delete</button>`);
+  o.querySelector("#ducan").onclick=()=>o.remove();
+  o.querySelector("#ducon").onclick=async()=>{
+    try{await deleteDoc(doc(db,"users",uid));showToast("User removed.","success");o.remove();renderPage();}
+    catch(e){o.querySelector("#duerr").textContent=e.message;o.querySelector("#duerr").classList.remove("hidden");}
+  };
+};
+
+// ── MAIN RENDER ───────────────────────────────────────────────
+const render = () => {
+  if(window.location.hash==="#register"){renderRegisterPage();return;}
+  if(!state.user){renderLogin();return;}
+  renderShell();
+};
+
+// ── AUTH ──────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if(user){
+    const profile=await getUserProfile(user.uid);
+    if(!profile){showToast("Profile not found. Contact admin.","error");await signOut(auth);return;}
+    profile.uid=user.uid; // always attach uid
+    state.user=user;
+    state.profile=profile;
+    render();
+  } else {
+    state.user=null;state.profile=null;
+    render();
+  }
+});
+
+window.addEventListener("hashchange",()=>{
+  if(window.location.hash==="#register") renderRegisterPage();
+  else if(state.user) render();
+});
+</script>
+
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  }
+</script>
 </body>
 </html>
+HTMLEOF
