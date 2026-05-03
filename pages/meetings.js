@@ -23,7 +23,7 @@ export default async function initMeetings(container) {
     if (role === "superAdmin") {
       chapters = await getChapters();
     } else {
-      chapters = await getChaptersByAdmin(profile.uid);
+      chapters = await getChaptersByAdmin(appState.user?.uid || profile?.id);
     }
 
     currentChapterId = appState.currentChapterId || chapters[0]?.id;
@@ -288,7 +288,7 @@ function showMeetingModal(existing = null) {
       const container = document.getElementById("page-content");
       const chapters = appState.profile?.role === "superAdmin"
         ? await getChapters()
-        : await getChaptersByAdmin(appState.profile.uid);
+        : await getChaptersByAdmin(appState.user?.uid || appState.profile?.id);
       renderMeetings(container, chapters, meetings);
     } catch (err) {
       errEl.textContent = t("error") + ": " + err.message;

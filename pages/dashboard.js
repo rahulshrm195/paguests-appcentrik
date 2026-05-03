@@ -120,7 +120,7 @@ async function renderSuperAdminDashboard(container) {
 
 // ── Chapter Admin Dashboard ───────────────────────────────────
 async function renderChapterDashboard(container, profile) {
-  const chapters = await getChaptersByAdmin(profile.uid);
+  const chapters = await getChaptersByAdmin(appState.user?.uid || profile?.id);
 
   // If multi-chapter, show picker or use stored
   let chapterId = appState.currentChapterId;

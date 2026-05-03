@@ -10,9 +10,18 @@ import { t, setLang, getLang, applyTranslations, LANG_LABELS, LANGUAGES } from "
 // 1. Bump APP_VERSION here
 // 2. Add entry to WHATS_NEW below
 // 3. Bump ?v= in index.html CSS + JS src to same number
-export const APP_VERSION = "1.1";
+export const APP_VERSION = "1.2";
 
 export const WHATS_NEW = {
+  "1.2": {
+    date: "May 2026",
+    title: "Bug Fixes",
+    items: [
+      "Fixed dashboard error on login",
+      "Fixed version display in sidebar and login page",
+      "Fixed profile loading for Chapter Admins",
+    ],
+  },
   "1.1": {
     date: "May 2026",
     title: "User Management",
@@ -115,7 +124,7 @@ function renderLoginPage() {
         <div class="login-logo">
           <span class="login-logo-mark">PA</span>
           <span class="login-logo-sub">Progress Alliance · Guest Tracker</span>
-          <span style="display:block;margin-top:6px;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.1em;">v" + APP_VERSION + "</span>
+          <span style="display:block;margin-top:6px;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.1em;">v${APP_VERSION}</span>
         </div>
 
         <div id="login-lang-toggle" style="display:flex;justify-content:center;margin-bottom:20px;"></div>
@@ -256,7 +265,7 @@ function renderSidebar() {
     <div class="sidebar-logo">
       <div class="logo-mark">PA Guest Tracker</div>
       <div class="logo-sub">Progress Alliance</div>
-      <div style="font-size:0.6rem;color:var(--text-muted);letter-spacing:0.08em;margin-top:2px;">v" + APP_VERSION + "</div>
+      <div style="font-size:0.6rem;color:var(--text-muted);letter-spacing:0.08em;margin-top:2px;">v${APP_VERSION}</div>
     </div>
 
     ${role !== "superAdmin" && profile?.currentChapterName ? `
@@ -285,7 +294,7 @@ function renderSidebar() {
       </div>
       <button class="btn btn-ghost btn-sm btn-full" id="whats-new-btn" style="margin-bottom:6px;justify-content:flex-start;gap:8px;color:var(--gold);border-color:var(--gold-border);">
         ✨ <span>What's New</span>
-        <span style="margin-left:auto;font-size:0.65rem;background:var(--gold);color:var(--navy);padding:1px 6px;border-radius:10px;font-weight:700;">v" + APP_VERSION + "</span>
+        <span style="margin-left:auto;font-size:0.65rem;background:var(--gold);color:var(--navy);padding:1px 6px;border-radius:10px;font-weight:700;">v${APP_VERSION}</span>
       </button>
       <button class="btn btn-ghost btn-sm btn-full" id="logout-btn">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
