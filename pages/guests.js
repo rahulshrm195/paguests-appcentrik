@@ -30,7 +30,7 @@ export default async function initGuests(container) {
       selectedChapterId = chapters[0]?.id || null;
       allGuests = selectedChapterId ? await getGuests(selectedChapterId) : [];
     } else {
-      chapters = await getChaptersByAdmin(appState.user?.uid || profile?.id);
+      chapters = await getChaptersByAdmin(profile.uid);
       currentChapterId = appState.currentChapterId || chapters[0]?.id;
       appState.currentChapterId = currentChapterId;
       allGuests = currentChapterId ? await getGuests(currentChapterId) : [];

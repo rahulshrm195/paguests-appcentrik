@@ -25,7 +25,7 @@ export default async function initAttendance(container) {
     if (role === "superAdmin") {
       chapters = await getChapters();
     } else {
-      chapters = await getChaptersByAdmin(appState.user?.uid || profile?.id);
+      chapters = await getChaptersByAdmin(profile.uid);
     }
 
     currentChapterId = appState.currentChapterId || chapters[0]?.id;

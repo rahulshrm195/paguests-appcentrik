@@ -10,16 +10,22 @@ import { t, setLang, getLang, applyTranslations, LANG_LABELS, LANGUAGES } from "
 // 1. Bump APP_VERSION here
 // 2. Add entry to WHATS_NEW below
 // 3. Bump ?v= in index.html CSS + JS src to same number
-export const APP_VERSION = "1.2";
+export const APP_VERSION = "1.3";
 
 export const WHATS_NEW = {
+  "1.3": {
+    date: "May 2026",
+    title: "Stability Fix",
+    items: [
+      "Fixed dashboard loading error for all roles",
+      "Fixed Firestore query error on login",
+    ],
+  },
   "1.2": {
     date: "May 2026",
     title: "Bug Fixes",
     items: [
-      "Fixed dashboard error on login",
       "Fixed version display in sidebar and login page",
-      "Fixed profile loading for Chapter Admins",
     ],
   },
   "1.1": {
@@ -84,6 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (user) {
       const profile = await getUserProfile(user.uid);
       appState.user = user;
+      // Attach uid to profile so all pages can use profile.uid reliably
+      if (profile) profile.uid = user.uid;
       appState.profile = profile;
       if (!profile) {
         showToast("Profile not found. Contact admin.", "error");
